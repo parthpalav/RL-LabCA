@@ -7,17 +7,17 @@
   <text x="16" y="195" font-size="12" fill="#17203a">Return</text>
   <rect x="100.8" y="50.0" width="92.4" height="290.0" fill="#8b5cf6"/>
   <text x="147.0" y="372" text-anchor="middle" font-size="12" fill="#17203a">Q-learning</text>
-  <text x="147.0" y="44.0" text-anchor="middle" font-size="12" fill="#17203a">15.42</text>
-  <rect x="254.8" y="51.1" width="92.4" height="288.9" fill="#0f766e"/>
+  <text x="147.0" y="44.0" text-anchor="middle" font-size="12" fill="#17203a">56.49</text>
+  <rect x="254.8" y="67.9" width="92.4" height="272.1" fill="#0f766e"/>
   <text x="301.0" y="372" text-anchor="middle" font-size="12" fill="#17203a">SARSA</text>
-  <text x="301.0" y="45.1" text-anchor="middle" font-size="12" fill="#17203a">15.36</text>
-  <rect x="408.8" y="109.5" width="92.4" height="230.5" fill="#fbbf24"/>
+  <text x="301.0" y="61.9" text-anchor="middle" font-size="12" fill="#17203a">53.00</text>
+  <rect x="408.8" y="135.6" width="92.4" height="204.4" fill="#fbbf24"/>
   <text x="455.0" y="372" text-anchor="middle" font-size="12" fill="#17203a">Fixed</text>
-  <text x="455.0" y="103.5" text-anchor="middle" font-size="12" fill="#17203a">12.26</text>
-  <rect x="562.8" y="71.8" width="92.4" height="268.2" fill="#fb7185"/>
+  <text x="455.0" y="129.6" text-anchor="middle" font-size="12" fill="#17203a">39.82</text>
+  <rect x="562.8" y="76.0" width="92.4" height="264.0" fill="#fb7185"/>
   <text x="609.0" y="372" text-anchor="middle" font-size="12" fill="#17203a">Rule</text>
-  <text x="609.0" y="65.8" text-anchor="middle" font-size="12" fill="#17203a">14.26</text>
-  <rect x="716.8" y="293.3" width="92.4" height="46.7" fill="#94a3b8"/>
+  <text x="609.0" y="70.0" text-anchor="middle" font-size="12" fill="#17203a">51.43</text>
+  <rect x="716.8" y="176.8" width="92.4" height="163.2" fill="#94a3b8"/>
   <text x="763.0" y="372" text-anchor="middle" font-size="12" fill="#17203a">Random</text>
-  <text x="763.0" y="287.3" text-anchor="middle" font-size="12" fill="#17203a">2.48</text>
+  <text x="763.0" y="170.8" text-anchor="middle" font-size="12" fill="#17203a">31.79</text>
 </svg>
