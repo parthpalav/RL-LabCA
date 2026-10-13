@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
 import type { QuestionOption } from '../core/index'
 import type { AnswerFeedback, VisibleQuestion } from '../app/types'
+import type { AnswerAudit, ModelInfo, PolicyDecision } from '../app/types'
 import { MathPrompt } from '../components/MathPrompt'
+import { DecisionDetails } from '../components/DecisionDetails'
 import { Orbit } from '../illustrations/Expedition'
 
 export function QuestionScreen({
@@ -16,6 +18,9 @@ export function QuestionScreen({
   onAnswer,
   onNext,
   onPause,
+  audit,
+  nextDecision,
+  model,
 }: {
   question: VisibleQuestion
   feedback: AnswerFeedback | null
@@ -28,6 +33,9 @@ export function QuestionScreen({
   onAnswer: (id: QuestionOption['id'], responseMs: number) => void
   onNext: () => void
   onPause: () => void
+  audit?: AnswerAudit
+  nextDecision?: PolicyDecision | null
+  model?: ModelInfo
 }) {
   const locked = useRef(false)
   const started = useRef(performance.now())
@@ -75,6 +83,11 @@ export function QuestionScreen({
         event.preventDefault()
         answer(event.key as QuestionOption['id'])
       } else if (event.key === 'Enter' && feedback) {
+        if (
+          target instanceof HTMLElement &&
+          target.closest('button, a, summary')
+        )
+          return
         event.preventDefault()
         onNext()
       }
@@ -177,6 +190,11 @@ export function QuestionScreen({
                 {feedback.correct
                   ? '✓ You found it!'
                   : '↺ A chance to explore the solution.'}
+                {mode === 'play' && (
+                  <span className="points-earned">
+                    +{feedback.correct ? 10 * question.level : 0} points
+                  </span>
+                )}
               </h3>
               <ol>
                 {feedback.steps.map((step, i) => (
@@ -188,7 +206,9 @@ export function QuestionScreen({
                   ? mode === 'calibration'
                     ? 'See my starting path'
                     : 'See my journey'
-                  : 'Next question'}{' '}
+                  : nextDecision
+                    ? `Next question · Level ${nextDecision.difficulty}`
+                    : 'Next question'}{' '}
                 →
               </button>
             </div>
@@ -211,6 +231,22 @@ export function QuestionScreen({
           <span className="guide-dots" aria-hidden="true">
             ✧ · ✦ · ✧
           </span>
+          {feedback && audit && (
+            <details className="live-decision">
+              <summary>Why this level?</summary>
+              <DecisionDetails
+                decision={audit.decision}
+                audit={audit}
+                model={model}
+              />
+              {nextDecision && (
+                <div className="next-decision">
+                  <h3>Next question</h3>
+                  <DecisionDetails decision={nextDecision} model={model} />
+                </div>
+              )}
+            </details>
+          )}
         </aside>
       </div>
       <p className="keyboard-help">

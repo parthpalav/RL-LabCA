@@ -1,5 +1,14 @@
-import type { Ability, Difficulty, Question } from '../core/index'
+import {
+  encodeState,
+  isValidAction,
+  nextDifficulty,
+  type Ability,
+  type Difficulty,
+  type Question,
+  type GameState,
+} from '../core/index'
 import { WORLDS, type WorldId } from './types'
+import type { AnswerAudit, ModelInfo } from './types'
 
 // Every journey's answers, kept in this browser's IndexedDB so a round can be
 // reviewed and replayed through the controller later. Nothing leaves the device.
@@ -17,6 +26,7 @@ export type StoredAnswer = {
   correct: boolean
   responseMs: number
   ability: Ability | null
+  audit?: AnswerAudit
 }
 
 export type StoredJourney = {
@@ -29,7 +39,7 @@ export type StoredJourney = {
   calibration: StoredAnswer[]
   startAbility: Ability | null
   seed: number | null
-  model: { algorithm: string; seed: number; timestamp: string } | null
+  model: ModelInfo | null
   answers: StoredAnswer[]
   finalAbility: Ability | null
 }
@@ -58,6 +68,7 @@ export function storedAnswer(
   correct: boolean,
   responseMs: number,
   ability: Ability | null,
+  audit?: AnswerAudit,
 ): StoredAnswer {
   const label = (id: string) =>
     question.options.find((option) => option.id === id)?.label ?? ''
@@ -76,6 +87,7 @@ export function storedAnswer(
     correct,
     responseMs: Math.round(responseMs),
     ability,
+    audit,
   }
 }
 
@@ -212,7 +224,97 @@ function isAnswer(value: unknown): value is StoredAnswer {
     typeof a.answer === 'string' &&
     typeof a.correct === 'boolean' &&
     typeof a.responseMs === 'number' &&
-    (a.ability === null || isAbility(a.ability))
+    (a.ability === null || isAbility(a.ability)) &&
+    (a.audit === undefined || isAudit(a.audit))
+  )
+}
+
+function isState(value: unknown): value is GameState {
+  if (!value || typeof value !== 'object') return false
+  const s = value as Record<string, unknown>
+  const integerIn = (v: unknown, min: number, max: number) =>
+    typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max
+  return (
+    isAbility(s.ability) &&
+    integerIn(s.previousDifficulty, 1, 5) &&
+    integerIn(s.strain, 0, 3) &&
+    integerIn(s.wrongStreak, 0, 3) &&
+    integerIn(s.answeredCount, 0, 20)
+  )
+}
+function isBelief(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false
+  const b = value as Record<string, unknown>
+  return (
+    isAbility(b.ability) &&
+    Array.isArray(b.posterior) &&
+    b.posterior.length === 4 &&
+    b.posterior.every(
+      (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1,
+    ) &&
+    Math.abs(b.posterior.reduce((sum: number, v: number) => sum + v, 0) - 1) <
+      1e-6
+  )
+}
+function isAudit(value: unknown): value is AnswerAudit {
+  if (!value || typeof value !== 'object') return false
+  const a = value as AnswerAudit
+  const d = a.decision
+  if (
+    !d ||
+    !isState(d.state) ||
+    d.state.answeredCount >= 20 ||
+    !isBelief(d.belief) ||
+    d.belief.ability !== d.state.ability ||
+    d.stateId !== encodeState(d.state) ||
+    !Number.isInteger(d.action) ||
+    !isValidAction(d.state.previousDifficulty, d.action) ||
+    d.difficulty !== nextDifficulty(d.state.previousDifficulty, d.action) ||
+    typeof d.fallback !== 'boolean' ||
+    !Number.isInteger(d.policySeed) ||
+    !Array.isArray(d.values) ||
+    d.values.length !== 3 ||
+    !d.values.every(
+      (v, i) =>
+        v &&
+        v.action === i &&
+        typeof v.valid === 'boolean' &&
+        v.valid === isValidAction(d.state.previousDifficulty, v.action) &&
+        (v.valid
+          ? typeof v.value === 'number' && Number.isFinite(v.value)
+          : v.value === null) &&
+        Number.isInteger(v.visits) &&
+        v.visits >= 0,
+    )
+  )
+    return false
+  if (
+    !a.next ||
+    !isState(a.next.state) ||
+    !isBelief(a.next.belief) ||
+    a.next.state.answeredCount !== d.state.answeredCount + 1 ||
+    a.next.belief.ability !== a.next.state.ability ||
+    typeof a.terminated !== 'boolean' ||
+    a.terminated !== (a.next.state.answeredCount === 20) ||
+    !a.reward
+  )
+    return false
+  const r = a.reward
+  return (
+    [
+      r.answerReward,
+      r.strainPenalty,
+      r.repeatedFailurePenalty,
+      r.switchPenalty,
+      r.total,
+    ].every((v) => typeof v === 'number' && Number.isFinite(v)) &&
+    Math.abs(
+      r.answerReward -
+        r.strainPenalty -
+        r.repeatedFailurePenalty -
+        r.switchPenalty -
+        r.total,
+    ) < 1e-6
   )
 }
 

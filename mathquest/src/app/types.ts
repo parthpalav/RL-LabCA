@@ -1,10 +1,13 @@
 import type {
   Ability,
   AbilityBelief,
+  Action,
   Difficulty,
   GameState,
   Question,
   QuestionOption,
+  ModelArtifact,
+  RewardParts,
   TabularPolicy,
 } from '../core/index'
 
@@ -40,6 +43,7 @@ export type AnswerRecord = {
   optionId: QuestionOption['id']
   correct: boolean
   responseMs: number
+  audit?: AnswerAudit
 }
 export type AnswerFeedback = {
   correct: boolean
@@ -67,11 +71,57 @@ export type SessionSummary = {
 // that public API exists; never substitute UI rules for the RL controller.
 // The belief re-estimates the ability slot of the state after each answer.
 export type LiveState = { state: GameState; belief: AbilityBelief }
-export type ModelInfo = { algorithm: string; seed: number; timestamp: string }
+export type ModelInfo = {
+  algorithm: string
+  seed: number
+  timestamp: string
+  episodes?: number
+  fingerprint?: string
+  stateSchema?: string
+  rewardVersion?: string
+  simulatorVersion?: string
+  generatorVersion?: string
+  hyperparameters?: ModelArtifact['hyperparameters']
+  trainingUpdates?: number
+  visitedStates?: number
+  visitedActions?: number
+}
+export type ActionValue = {
+  action: Action
+  valid: boolean
+  value: number | null
+  visits: number
+}
+export type PolicyDecision = {
+  state: GameState
+  stateId: number
+  belief: AbilityBelief
+  policySeed: number
+  action: Action
+  difficulty: Difficulty
+  fallback: boolean
+  values: ActionValue[]
+}
+export type AnswerAudit = {
+  decision: PolicyDecision
+  reward: RewardParts
+  next: LiveState
+  terminated: boolean
+}
 export type PlayRuntime = {
   policy: TabularPolicy
   model: ModelInfo
   initialState: (ability: Ability) => LiveState
+  decide: (live: LiveState, policySeed: number) => PolicyDecision
+  observe: (
+    live: LiveState,
+    decision: PolicyDecision,
+    correct: boolean,
+  ) => {
+    live: LiveState
+    reward: RewardParts
+    terminated: boolean
+  }
   chooseDifficulty: (live: LiveState, policySeed: number) => Difficulty
   observeAnswer: (
     live: LiveState,

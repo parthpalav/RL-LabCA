@@ -41,14 +41,21 @@ import {
   WORLDS,
   type AnswerFeedback,
   type AnswerRecord,
+  type AnswerAudit,
   type LiveState,
   type PlayRuntime,
+  type PolicyDecision,
   type SessionSummary,
 } from './types'
 
 // Charts load only when a replay is opened, keeping play's first load small.
 const Replay = lazy(() =>
   import('../screens/Replay').then((module) => ({ default: module.Replay })),
+)
+const ResearchLab = lazy(() =>
+  import('../screens/ResearchLab').then((module) => ({
+    default: module.ResearchLab,
+  })),
 )
 
 type Screen =
@@ -72,6 +79,8 @@ type Round = {
   seed: number
   changeMessage: string
   abilityBefore: Ability | null
+  decision: PolicyDecision | null
+  pendingDecision: PolicyDecision | null
 }
 type Modal =
   | { kind: 'pause' }
@@ -153,6 +162,8 @@ export function MathQuest() {
       seed: 4100,
       changeMessage: '',
       abilityBefore: null,
+      decision: null,
+      pendingDecision: null,
     })
     setScreen('round')
   }
@@ -162,7 +173,8 @@ export function MathQuest() {
       const seed = crypto.getRandomValues(new Uint32Array(1))[0]
       const runtime = availability.runtime
       const state = runtime.initialState(ability)
-      const level = runtime.chooseDifficulty(state, mixSeed(seed, POLICY_STREAM))
+      const decision = runtime.decide(state, mixSeed(seed, POLICY_STREAM))
+      const level = decision.difficulty
       answerLocked.current = false
       if (journey.current?.answers.length)
         journey.current = {
@@ -188,6 +200,8 @@ export function MathQuest() {
         seed,
         changeMessage: '',
         abilityBefore: null,
+        decision,
+        pendingDecision: null,
       })
       setScreen('round')
     } catch {
@@ -211,13 +225,31 @@ export function MathQuest() {
     answerLocked.current = true
     const correct = gradeQuestion(round.question, optionId)
     let state = round.state
+    let audit: AnswerAudit | undefined
+    let pendingDecision: PolicyDecision | null = null
     try {
-      if (round.mode === 'play' && round.runtime && state)
-        state = round.runtime.observeAnswer(
+      if (round.mode === 'play') {
+        if (!round.runtime || !state || !round.decision)
+          throw new Error('Missing live decision')
+        const observation = round.runtime.observe(
           state,
-          round.question.level,
+          round.decision,
           correct,
         )
+        state = observation.live
+        audit = {
+          decision: round.decision,
+          reward: observation.reward,
+          next: state,
+          terminated: observation.terminated,
+        }
+        if (!observation.terminated) {
+          pendingDecision = round.runtime.decide(
+            state,
+            mixSeed(round.seed, POLICY_STREAM + round.records.length + 1),
+          )
+        }
+      }
     } catch {
       setModal({
         kind: 'error',
@@ -232,6 +264,7 @@ export function MathQuest() {
       correct,
       responseMs,
       state?.belief.ability ?? null,
+      audit,
     )
     if (journey.current)
       persist(
@@ -242,10 +275,11 @@ export function MathQuest() {
     setRound({
       ...round,
       state,
+      pendingDecision,
       abilityBefore: round.state?.belief.ability ?? null,
       records: [
         ...round.records,
-        { question: round.question, optionId, correct, responseMs },
+        { question: round.question, optionId, correct, responseMs, audit },
       ],
       feedback: {
         correct,
@@ -290,12 +324,7 @@ export function MathQuest() {
       const level =
         round.mode === 'calibration'
           ? CALIBRATION_LEVELS[index]
-          : round.runtime && round.state
-            ? round.runtime.chooseDifficulty(
-                round.state,
-                mixSeed(round.seed, POLICY_STREAM + index),
-              )
-            : null
+          : (round.pendingDecision?.difficulty ?? null)
       if (level === null) throw new Error('No live controller')
       const question = generateQuestion(
         level,
@@ -308,8 +337,9 @@ export function MathQuest() {
         ...round,
         question,
         feedback: null,
-        changeMessage:
-          round.mode === 'play' ? changeMessage(round, level) : '',
+        decision: round.pendingDecision,
+        pendingDecision: null,
+        changeMessage: round.mode === 'play' ? changeMessage(round, level) : '',
       })
     } catch {
       setModal({
@@ -376,6 +406,9 @@ export function MathQuest() {
             onAnswer={answer}
             onNext={next}
             onPause={() => setModal({ kind: 'pause' })}
+            audit={round.feedback ? round.records.at(-1)?.audit : undefined}
+            nextDecision={round.pendingDecision}
+            model={round.runtime?.model}
           />
         </>
       )}
@@ -403,6 +436,7 @@ export function MathQuest() {
             setScreen('replay')
           }}
           notice={notice}
+          model={round.runtime?.model}
         />
       )}
       {screen === 'history' && (
@@ -424,10 +458,28 @@ export function MathQuest() {
               availability.status === 'ready' ? availability.runtime : null
             }
             onBack={() => setScreen('history')}
+            initialJourney={
+              journey.current?.id === replayId ? journey.current : undefined
+            }
           />
         </Suspense>
       )}
-      {(screen === 'profile' || screen === 'train' || screen === 'lab') && (
+      {screen === 'lab' && (
+        <Suspense
+          fallback={<p className="page-section">Loading Research Lab…</p>}
+        >
+          <ResearchLab
+            availability={availability}
+            onBack={() => setScreen('landing')}
+            onJourney={(id) => {
+              setReplayId(id)
+              setScreen('replay')
+            }}
+            currentJourney={journey.current}
+          />
+        </Suspense>
+      )}
+      {(screen === 'profile' || screen === 'train') && (
         <PendingMode mode={screen} onBack={() => setScreen('landing')} />
       )}
       {modal && (
@@ -570,17 +622,17 @@ export function MathQuest() {
 
 function changeMessage(round: Round, level: number) {
   const now = round.state?.belief.ability
-  if (
+  const profileChanged =
     now !== undefined &&
     round.abilityBefore !== null &&
     now !== round.abilityBefore
-  )
-    return now > round.abilityBefore
-      ? `You’re climbing — your path is now ${profileById(now).label}.`
-      : `Let’s steady the trail — your path is now ${profileById(now).label}.`
-  return level > round.question.level
-    ? 'A little more challenge.'
-    : level < round.question.level
-      ? 'Let’s build confidence.'
-      : 'Stay on this path.'
+      ? ` Starting path estimate: ${profileById(now!).label}.`
+      : ''
+  const direction =
+    level > round.question.level
+      ? 'A little more challenge.'
+      : level < round.question.level
+        ? 'Let’s build confidence.'
+        : 'Stay on this path.'
+  return `Level ${round.question.level} → ${level}. ${direction}${profileChanged}`
 }

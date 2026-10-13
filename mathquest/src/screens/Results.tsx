@@ -1,5 +1,7 @@
 import { profileById, type Ability } from '../core/index'
 import type { AnswerRecord, SessionSummary } from '../app/types'
+import type { ModelInfo } from '../app/types'
+import { SessionAnalytics } from '../components/SessionAnalytics'
 import { MathPrompt } from '../components/MathPrompt'
 import { Orbit } from '../illustrations/Expedition'
 
@@ -11,6 +13,7 @@ export function Results({
   onAgain,
   onLab,
   notice,
+  model,
 }: {
   records: AnswerRecord[]
   summary: SessionSummary
@@ -19,6 +22,7 @@ export function Results({
   onAgain: () => void
   onLab: () => void
   notice: string
+  model?: ModelInfo
 }) {
   const wrong = records.filter((record) => !record.correct)
   return (
@@ -81,6 +85,14 @@ export function Results({
           ))}
         </ol>
       </section>
+      <SessionAnalytics
+        answers={records.map((record) => ({
+          level: record.question.level,
+          correct: record.correct,
+          audit: record.audit,
+        }))}
+        model={model}
+      />
       <details className="review">
         <summary>Review {wrong.length} questions to explore again</summary>
         {wrong.length === 0 ? (

@@ -11,14 +11,15 @@ import {
 } from 'recharts'
 import {
   expectedAbility,
-  PROFILES,
   profileById,
   replayRound,
-  type Action,
   type ReplayStep,
 } from '../core/index'
 import { listJourneys, type StoredJourney } from '../app/history'
 import type { PlayRuntime } from '../app/types'
+import { auditFromReplay, sameModel as modelsMatch } from '../app/analytics'
+import { DecisionDetails } from '../components/DecisionDetails'
+import { SessionAnalytics } from '../components/SessionAnalytics'
 
 // Validated with the dataviz palette checker against the #1c2549 surface.
 const SERIES = {
@@ -26,33 +27,34 @@ const SERIES = {
   whatIf: '#d97706',
   fixed: '#8b5cf6',
 } as const
-const ACTION_LABEL: Record<Action, string> = {
-  0: 'Easier',
-  1: 'Same',
-  2: 'Harder',
-}
 const SHORT_PATH = ['Starting', 'Building', 'Comfortable', 'Challenge']
 
 export function Replay({
   id,
   runtime,
   onBack,
+  initialJourney,
 }: {
   id: string
   runtime: PlayRuntime | null
   onBack: () => void
+  initialJourney?: StoredJourney
 }) {
   const [journey, setJourney] = useState<StoredJourney | null | 'loading'>(
-    'loading',
+    initialJourney ?? 'loading',
   )
   const [flips, setFlips] = useState<ReadonlySet<number>>(new Set())
   const [showFixed, setShowFixed] = useState(false)
 
   useEffect(() => {
+    if (initialJourney) {
+      setJourney(initialJourney)
+      return
+    }
     void listJourneys().then((all) =>
       setJourney(all?.find((item) => item.id === id) ?? null),
     )
-  }, [id])
+  }, [id, initialJourney])
 
   const replay = useMemo(() => {
     if (
@@ -110,19 +112,18 @@ export function Replay({
     played: answer.level,
     whatIf: replay?.whatIf?.[i].difficulty,
     fixed: replay?.fixed?.[i].difficulty,
-    playedAbility: replay
-      ? round2(expectedAbility(replay.played[i].beliefAfter))
-      : undefined,
+    playedAbility: answer.audit
+      ? round2(expectedAbility(answer.audit.next.belief))
+      : replay
+        ? round2(expectedAbility(replay.played[i].beliefAfter))
+        : undefined,
     whatIfAbility: replay?.whatIf
       ? round2(expectedAbility(replay.whatIf[i].beliefAfter))
       : undefined,
   }))
   const total = (steps: ReplayStep[] | null | undefined) =>
     steps ? steps.reduce((sum, step) => sum + step.reward.total, 0) : 0
-  const sameModel =
-    runtime && journey.model
-      ? runtime.model.timestamp === journey.model.timestamp
-      : false
+  const sameModel = modelsMatch(runtime?.model, journey.model)
 
   return (
     <section className="page-section replay">
@@ -145,8 +146,9 @@ export function Replay({
 
       <details className="review">
         <summary>
-          Starting questions: {journey.calibration.filter((a) => a.correct).length}{' '}
-          / {journey.calibration.length} correct
+          Starting questions:{' '}
+          {journey.calibration.filter((a) => a.correct).length} /{' '}
+          {journey.calibration.length} correct
         </summary>
         <ol className="calibration-list">
           {journey.calibration.map((answer, i) => (
@@ -158,8 +160,8 @@ export function Replay({
           ))}
         </ol>
         <p className="microcopy">
-          The number correct sets the starting path. From then on, every
-          answer updates it.
+          The number correct sets the starting path. From then on, every answer
+          updates it.
         </p>
       </details>
 
@@ -171,20 +173,25 @@ export function Replay({
         <>
           {!runtime && (
             <p className="notice">
-              The saved model is not loaded, so the controller’s reasoning
-              and what-if replays are unavailable. Your answers are shown
-              below.
+              The saved model is not loaded, so the controller’s reasoning and
+              what-if replays are unavailable. Your answers are shown below.
             </p>
           )}
           {replay && (
             <p className={`notice ${replay.matches ? 'verified' : ''}`}>
-              {replay.matches
+              {replay.matches && sameModel
                 ? '✓ Replaying your answers through the saved controller reproduces exactly the levels you were given.'
                 : sameModel
                   ? 'The replay differs from what you played. This journey was saved by an older version of the game.'
-                  : 'This journey was played with a different saved model, so the replay below shows what the current model would do.'}
+                  : 'Model identity differs or was not recorded. The reconstruction and what-if below use the currently loaded model; original snapshots, where available, remain shown separately.'}
             </p>
           )}
+
+          <SessionAnalytics
+            answers={journey.answers}
+            model={journey.model}
+            exportName={`mathquest-${journey.id}`}
+          />
 
           <div className="replay-controls">
             <label>
@@ -215,7 +222,9 @@ export function Replay({
               {replay.whatIf && ` · what-if ${total(replay.whatIf).toFixed(1)}`}
               {replay.fixed &&
                 ` · no tracking ${total(replay.fixed).toFixed(1)}`}
-              .
+              . Later correctness outcomes are prescribed even if question
+              levels change. This is a controller check, not a prediction of how
+              a human would answer different questions.
             </p>
           )}
 
@@ -371,32 +380,35 @@ export function Replay({
                     {answer.correct ? '✓' : '✗'} You chose {answer.chosen}
                     {!answer.correct && ` · answer ${answer.answer}`}
                   </p>
+                  {(answer.audit || step) && (
+                    <details className="decision-record">
+                      <summary>
+                        {answer.audit
+                          ? 'Recorded controller decision and reward'
+                          : 'Reconstructed current-model decision (no original snapshot)'}
+                      </summary>
+                      <DecisionDetails
+                        decision={
+                          (
+                            answer.audit ??
+                            auditFromReplay(
+                              step!,
+                              runtime!.policy,
+                              journey.seed!,
+                            )
+                          ).decision
+                        }
+                        audit={
+                          answer.audit ??
+                          auditFromReplay(step!, runtime!.policy, journey.seed!)
+                        }
+                        model={answer.audit ? journey.model : runtime?.model}
+                        runtime={answer.audit && !sameModel ? null : runtime}
+                      />
+                    </details>
+                  )}
                   {step && (
                     <>
-                      <p className="microcopy">
-                        Controller saw: path{' '}
-                        {profileById(step.state.ability).label}, last level{' '}
-                        {step.state.previousDifficulty}, strain{' '}
-                        {step.state.strain}, {step.state.wrongStreak} missed
-                        in a row.
-                        {step.fallback &&
-                          ' This exact situation never came up in training, so it used the safe rule.'}
-                      </p>
-                      <div className="q-values" aria-label="Controller values">
-                        {step.qValues.map(({ action, value }) => (
-                          <span
-                            key={action}
-                            className={action === step.action ? 'chosen' : ''}
-                          >
-                            {ACTION_LABEL[action]} {value.toFixed(2)}
-                          </span>
-                        ))}
-                      </div>
-                      <Belief
-                        before={step.belief.ability}
-                        posterior={step.beliefAfter.posterior}
-                        after={step.beliefAfter.ability}
-                      />
                       {alt && alt.difficulty !== step.difficulty && (
                         <p className="what-if-note">
                           What-if: this question would have been level{' '}
@@ -460,35 +472,5 @@ function AnswerDot({
       strokeWidth={2}
       fill={correct ? SERIES.played : '#1c2549'}
     />
-  )
-}
-
-function Belief({
-  before,
-  after,
-  posterior,
-}: {
-  before: number
-  after: number
-  posterior: number[]
-}) {
-  return (
-    <div className="belief">
-      <p className="microcopy">
-        {after === before
-          ? `Path stays ${PROFILES[after].label}.`
-          : `Path moves ${after > before ? 'up' : 'down'} to ${PROFILES[after].label}.`}
-      </p>
-      <div className="belief-bars">
-        {posterior.map((p, a) => (
-          <span key={a} title={`${PROFILES[a].label}: ${Math.round(p * 100)}%`}>
-            <i style={{ height: `${Math.max(2, p * 100)}%` }} />
-            <small>
-              {SHORT_PATH[a]} {Math.round(p * 100)}%
-            </small>
-          </span>
-        ))}
-      </div>
-    </div>
   )
 }
