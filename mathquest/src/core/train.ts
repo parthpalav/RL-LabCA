@@ -10,12 +10,13 @@ import {
   greedyAction,
   maxValidQ,
   qUpdate,
+  qIndex,
   qValue,
   tdTarget,
   type TabularPolicy,
 } from './policy'
 import { mixSeed, mulberry32, type Rng } from './rng'
-import type { Ability, Action } from './types'
+import type { Ability, Action, GameState } from './types'
 
 export type Algorithm = 'q-learning' | 'sarsa'
 
@@ -31,6 +32,8 @@ export type TrainOptions = {
   seed: number
   episodes: number
   alpha?: number
+  // Visit-count step size exponent; null keeps alpha constant.
+  alphaDecay?: number | null
   gamma?: number
   abilityFixed?: Ability
   response?: ResponseModel
@@ -62,6 +65,7 @@ export function streamsFor(seed: number): TrainStreams {
 export function trainAgent(options: TrainOptions): TrainResult {
   const alpha = options.alpha ?? TRAIN.alpha
   const gamma = options.gamma ?? TRAIN.gamma
+  const alphaDecay = options.alphaDecay === undefined ? TRAIN.alphaDecay : options.alphaDecay
   const response = options.response ?? RESPONSE
   const streams = options.streams ?? streamsFor(options.seed)
   const policy = createPolicy()
@@ -71,6 +75,7 @@ export function trainAgent(options: TrainOptions): TrainResult {
       runTrainingEpisode(policy, options.algorithm, streams, {
         epsilon: epsilonFor(episode, options.episodes),
         alpha,
+        alphaDecay,
         gamma,
         abilityFixed: options.abilityFixed,
         response,
@@ -96,6 +101,7 @@ export function trainAgent(options: TrainOptions): TrainResult {
 type EpisodeOptions = {
   epsilon: number
   alpha: number
+  alphaDecay?: number | null
   gamma: number
   abilityFixed?: Ability
   response: ResponseModel
@@ -137,13 +143,28 @@ export function runTrainingEpisode(
       state,
       action,
       tdTarget(transition.reward.total, options.gamma, nextValue, transition.terminated),
-      options.alpha,
+      stepSize(policy, state, action, options.alpha, options.alphaDecay),
     )
     total += transition.reward.total
     state = transition.next
     if (nextAction !== null) action = nextAction
   }
   return total
+}
+
+// Robbins-Monro step size: alpha_n = min(alpha, 1 / (1 + n)^omega) for the
+// n-th visit to (s, a). With a constant alpha the Q-values keep tracking
+// reward noise and near-tied actions flip; a decaying step lets them settle.
+export function stepSize(
+  policy: TabularPolicy,
+  state: GameState,
+  action: Action,
+  alpha: number,
+  decay: number | null | undefined,
+): number {
+  if (decay === null || decay === undefined) return alpha
+  const visits = policy.visits[qIndex(state, action)]
+  return Math.min(alpha, 1 / Math.pow(1 + visits, decay))
 }
 
 export function runFrozenEpisode(

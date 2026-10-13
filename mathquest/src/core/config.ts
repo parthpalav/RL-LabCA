@@ -1,8 +1,8 @@
 export const SCHEMA_VERSION = 1
 export const STATE_SCHEMA = 'ability4-diff5-strain4-streak4-count21'
 export const ACTION_MASK_VERSION = 1
-export const SIMULATOR_VERSION = 'response-v1'
-export const REWARD_VERSION = 'reward-v1'
+export const SIMULATOR_VERSION = 'response-v2'
+export const REWARD_VERSION = 'reward-v2'
 export const GENERATOR_VERSION = 'questions-v2'
 
 export const N_ABILITIES = 4
@@ -15,7 +15,7 @@ export const N_ACTIONS = 3
 export const EPISODE_LENGTH = 20
 
 export const REWARD = {
-  challengeStep: 0.5,
+  challengeStep: 1,
   wrongReward: -1,
   strainWeight: 0.15,
   repeatedFailurePenalty: 0.4,
@@ -23,24 +23,28 @@ export const REWARD = {
   switchPenalty: 0.05,
 } as const
 
+// v2: each ability succeeds about 88% of the time two levels above itself,
+// so the top profile is expected to work at level 5. In v1 the top profile
+// managed level 5 only a third of the time and the agent never chose 4 or 5.
 export const RESPONSE = {
-  slope: 1.4,
-  abilityOffset: 1.5,
-  strainCoefficient: 0.35,
+  slope: 2,
+  abilityOffset: 3,
+  strainCoefficient: 0.5,
   minProbability: 0.25,
   maxProbability: 0.98,
 } as const
 
 export const STRESS_RESPONSE = {
-  slope: 1.1,
-  abilityOffset: 1.5,
-  strainCoefficient: 0.5,
+  slope: 1.6,
+  abilityOffset: 3,
+  strainCoefficient: 0.7,
   minProbability: 0.25,
   maxProbability: 0.98,
 } as const
 
 export const TRAIN = {
   alpha: 0.1,
+  alphaDecay: 0.7 as number | null,
   gamma: 0.95,
   episodes: 100000,
   epsilonInitial: 1,
@@ -58,7 +62,7 @@ export const TRAIN = {
 export const CALIBRATION_LEVELS = [1, 2, 2, 3, 3, 4] as const
 
 export const TRACKER = {
-  priorSpread: 0.5,
+  priorSpread: 0.7,
   memory: 0.9,
-  switchMargin: 0.1,
+  switchMargin: 0.02,
 } as const

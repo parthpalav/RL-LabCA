@@ -8,10 +8,10 @@ describe('transitions', () => {
   it('pays challenge only for a correct harder question and subtracts a switch', () => {
     const step = applyTransition(initialState(1), 2, true)
     expect(step.difficulty).toBe(3)
-    expect(step.reward.answerReward).toBeCloseTo(2)
+    expect(step.reward.answerReward).toBeCloseTo(3)
     expect(step.reward.switchPenalty).toBeCloseTo(0.05)
     expect(step.reward.strainPenalty).toBe(0)
-    expect(step.reward.total).toBeCloseTo(1.95)
+    expect(step.reward.total).toBeCloseTo(2.95)
     expect(rewardSums(step.reward)).toBe(true)
   })
 

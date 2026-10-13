@@ -57,7 +57,7 @@ Lane B imports the core. Lane B does not reimplement grading, the MDP, or Q-lear
 |---|---|---|---|
 | A1 | A | Question engine, rational grading, state codec, action masks, profiles | Done |
 | A2 | A | MDP, reward, Q-learning, SARSA, baselines, CLI | Done |
-| A3 | A | Pilot, three seeds, held-out tests, bundled JSON models | Done |
+| A3 | A | Pilot, three seeds, held-out tests, bundled JSON models | Done; rerun 13 Oct with simulator v2, reward v2, and a decaying step size |
 | A4 | A | Report draft filled with measured results, rubric evidence | Todo |
 | B1 | B | Landing, setup, calibration, 20-question play, results | Done: live play uses the saved Q-learning controller and re-estimates ability after every answer |
 | B2 | B | Test a profile: play or watch a simulated player | Todo |

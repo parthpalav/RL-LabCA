@@ -26,6 +26,7 @@ export type ModelArtifact = {
   timestamp: string
   hyperparameters: {
     alpha: number
+    alphaDecay?: number | null
     gamma: number
     epsilonInitial: number
     epsilonFinal: number
@@ -60,6 +61,7 @@ export function serializeModel(
     timestamp: details.timestamp,
     hyperparameters: {
       alpha: details.alpha,
+      alphaDecay: TRAIN.alphaDecay,
       gamma: details.gamma,
       epsilonInitial: TRAIN.epsilonInitial,
       epsilonFinal: TRAIN.epsilonFinal,

@@ -19,7 +19,7 @@ describe('episode metrics', () => {
     const wrong = { ...scenario, id: 'wrong', uniforms: Array.from({ length: 20 }, () => 1) }
     const good = runEpisode(correct, RESPONSE, () => 1)
     const bad = runEpisode(wrong, RESPONSE, () => 1)
-    expect(good.episodeReturn).toBeCloseTo(30)
+    expect(good.episodeReturn).toBeCloseTo(40)
     expect(good.switches).toBe(0)
     expect(good.meanSolvedDifficulty).toBe(2)
     expect(bad.correctRate).toBe(0)

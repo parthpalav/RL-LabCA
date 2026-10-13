@@ -18,17 +18,21 @@ describe('live ability tracker', () => {
     expect(Math.max(...belief.posterior)).toBe(belief.posterior[2])
   })
 
-  it('does not move on a single surprising answer and moves one level at a time', () => {
-    const once = updateBelief(priorBelief(0), 3, 0, true)
-    expect(once.ability).toBe(0)
+  it('moves at most one level per answer and climbs on a run of hard correct answers', () => {
     let belief = priorBelief(0)
     for (let i = 0; i < 8; i += 1) {
       const next = updateBelief(belief, 4, 0, true)
       expect(Math.abs(next.ability - belief.ability)).toBeLessThanOrEqual(1)
       belief = next
     }
-    expect(belief.ability).toBeGreaterThanOrEqual(2)
-    expect(expectedAbility(belief)).toBeGreaterThan(1.5)
+    expect(belief.ability).toBe(3)
+    expect(expectedAbility(belief)).toBeGreaterThan(2)
+  })
+
+  it('does not drop on one easy miss after a long correct run', () => {
+    let belief = priorBelief(3)
+    for (let i = 0; i < 6; i += 1) belief = updateBelief(belief, 5, 0, true)
+    expect(updateBelief(belief, 5, 0, false).ability).toBe(3)
   })
 
   it('lowers the estimate after repeated mistakes', () => {
