@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { CALIBRATION_LEVELS, generateQuestion } from '../core/index'
@@ -12,6 +11,19 @@ import {
   saveSettings,
   saveSummary,
 } from './storage'
+
+// Kept in Lane B's app directory so no Lane A test/config files change.
+// These assertions require only the already-installed browser/TypeScript stack.
+const assert = {
+  ok(value: unknown) {
+    if (!value) throw new Error('Expected a truthy value')
+  },
+  equal(actual: unknown, expected: unknown) {
+    if (!Object.is(actual, expected)) {
+      throw new Error(`Expected ${String(expected)}, received ${String(actual)}`)
+    }
+  },
+}
 
 const question = generateQuestion(CALIBRATION_LEVELS[0], 4100)
 const visible = {

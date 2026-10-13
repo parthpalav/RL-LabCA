@@ -59,7 +59,7 @@ Lane B imports the core. Lane B does not reimplement grading, the MDP, or Q-lear
 | A2 | A | MDP, reward, Q-learning, SARSA, baselines, CLI | Todo |
 | A3 | A | Pilot, three seeds, held-out tests, bundled JSON models | Todo |
 | A4 | A | Report draft filled with measured results, rubric evidence | Todo |
-| B1 | B | Landing, setup, calibration, 20-question play, results | In progress: landing, setup, calibration working; adaptive play awaits A2 API and A3 model |
+| B1 | B | Landing, setup, calibration, 20-question play, results | In progress: calibration and UI verified; adaptive play awaits A2 API and A3 model |
 | B2 | B | Test a profile: play or watch a simulated player | Todo |
 | B3 | B | Three SVG worlds, guide, trail, badges, phone and laptop layout | Todo |
 | B4 | B | Train a profile screen. Must not overwrite `public/models` | Todo |

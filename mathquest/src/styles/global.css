@@ -227,7 +227,7 @@ main,
   padding: 26px 0 8px;
 }
 .hero-copy {
-  padding-block: 16px;
+  padding-block: 8px;
 }
 .hero h1 {
   font-size: clamp(36px, 3.45vw, 46px);
@@ -252,7 +252,7 @@ main,
 .hero-art {
   text-align: center;
   width: 100%;
-  max-width: 440px;
+  max-width: 400px;
   margin-left: auto;
 }
 .expedition {

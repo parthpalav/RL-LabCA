@@ -17,16 +17,13 @@ export function Landing({
             <span aria-hidden="true">✦</span> YOUR NEXT LITTLE ADVENTURE
           </p>
           <h1>
-            Big curiosity.
+            A little math.
             <br />
-            Small steps.
-            <br />
-            <em>Infinite possibilities.</em>
+            <em>A big adventure.</em>
           </h1>
           <p className="intro">
-            A math adventure that adjusts the challenge as you play. Find your
-            starting path, follow the stars, and see where your answers take
-            you.
+            A math adventure that adjusts the challenge as you play. Follow
+            the stars, one question at a time.
           </p>
           <button className="button primary" onClick={onStart}>
             Start Adventure <span aria-hidden="true">→</span>
@@ -60,6 +57,7 @@ export function Landing({
           <button className="text-button" onClick={onStart}>
             Begin your journey →
           </button>
+          <span className="slice-label">Starting questions available now</span>
         </article>
         <article className="mode-card">
           <span className="mode-number">02 / TRY A PATH</span>
