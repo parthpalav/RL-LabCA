@@ -5,24 +5,40 @@ import {
   mulberry32,
   nextDifficulty,
   parseModel,
+  priorBelief,
+  updateBelief,
+  withAbility,
 } from '../core/index'
 import type { Difficulty, GameState, TabularPolicy } from '../core/index'
-import type { PlayRuntime } from './types'
+import type { ModelInfo, PlayRuntime } from './types'
 
 export type PlayAvailability =
   | { status: 'loading' }
   | { status: 'unavailable'; title: string; detail: string }
   | { status: 'ready'; runtime: PlayRuntime }
 
-export function runtimeFromPolicy(policy: TabularPolicy): PlayRuntime {
+export function runtimeFromPolicy(
+  policy: TabularPolicy,
+  model: ModelInfo,
+): PlayRuntime {
   return {
-    initialState,
-    chooseDifficulty(state, policySeed) {
+    policy,
+    model,
+    initialState(ability) {
+      return { state: initialState(ability), belief: priorBelief(ability) }
+    },
+    chooseDifficulty({ state }, policySeed) {
       const decision = actFrozen(policy, state, mulberry32(policySeed))
       return nextDifficulty(state.previousDifficulty, decision.action)
     },
-    observeAnswer(state, difficulty, correct) {
-      return applyTransition(state, actionFor(state, difficulty), correct).next
+    observeAnswer({ state, belief }, difficulty, correct) {
+      const next = applyTransition(
+        state,
+        actionFor(state, difficulty),
+        correct,
+      ).next
+      const updated = updateBelief(belief, difficulty, state.strain, correct)
+      return { state: withAbility(next, updated), belief: updated }
     },
   }
 }
@@ -62,7 +78,14 @@ export async function loadPlayRuntime(
             'Live play uses the full Q-learning table. This file is a different or unfinished run.',
         }
       }
-      return { status: 'ready', runtime: runtimeFromPolicy(policy) }
+      return {
+        status: 'ready',
+        runtime: runtimeFromPolicy(policy, {
+          algorithm: artifact.algorithm,
+          seed: artifact.seed,
+          timestamp: artifact.timestamp,
+        }),
+      }
     } catch {
       return {
         status: 'unavailable',

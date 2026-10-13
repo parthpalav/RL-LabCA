@@ -94,6 +94,10 @@ export function Setup({
           Remember settings and completed summaries on this device
         </label>
       </div>
+      <p className="microcopy">
+        Your answers are kept in My Journeys on this device so you can replay
+        how the trail adapted. Reset Local Data removes them.
+      </p>
       <p className="keyboard-help">
         Keys 1–4 answer · Enter continues after feedback · Esc pauses
         <br />

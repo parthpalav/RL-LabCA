@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import {
   abilityFromCalibration,
   CALIBRATION_LEVELS,
@@ -6,8 +6,9 @@ import {
   generateQuestion,
   gradeQuestion,
   mixSeed,
+  POLICY_STREAM,
   type Ability,
-  type GameState,
+  profileById,
   type Question,
   type QuestionOption,
 } from '../core/index'
@@ -19,6 +20,7 @@ import { QuestionScreen } from '../screens/QuestionScreen'
 import { StartingPath } from '../screens/StartingPath'
 import { Results } from '../screens/Results'
 import { PendingMode } from '../screens/PendingMode'
+import { History } from '../screens/History'
 import {
   DEFAULT_SETTINGS,
   readSettings,
@@ -27,14 +29,27 @@ import {
   saveSummary,
 } from './storage'
 import { loadPlayRuntime, type PlayAvailability } from './playRuntime'
+import {
+  clearJourneys,
+  newJourney,
+  saveJourney,
+  storedAnswer,
+  type StoredJourney,
+} from './history'
 import { summarize } from './summary'
 import {
   WORLDS,
   type AnswerFeedback,
   type AnswerRecord,
+  type LiveState,
   type PlayRuntime,
   type SessionSummary,
 } from './types'
+
+// Charts load only when a replay is opened, keeping play's first load small.
+const Replay = lazy(() =>
+  import('../screens/Replay').then((module) => ({ default: module.Replay })),
+)
 
 type Screen =
   | 'landing'
@@ -45,15 +60,18 @@ type Screen =
   | 'profile'
   | 'train'
   | 'lab'
+  | 'history'
+  | 'replay'
 type Round = {
   mode: 'calibration' | 'play'
   question: Question
   records: AnswerRecord[]
   feedback: AnswerFeedback | null
-  state: GameState | null
+  state: LiveState | null
   runtime: PlayRuntime | null
   seed: number
   changeMessage: string
+  abilityBefore: Ability | null
 }
 type Modal =
   | { kind: 'pause' }
@@ -74,6 +92,8 @@ export function MathQuest() {
   const [summary, setSummary] = useState<SessionSummary | null>(null)
   const [modal, setModal] = useState<Modal | null>(null)
   const [notice, setNotice] = useState('')
+  const [replayId, setReplayId] = useState<string | null>(null)
+  const journey = useRef<StoredJourney | null>(null)
   const answerLocked = useRef(false)
   const advancing = useRef(false)
 
@@ -100,6 +120,16 @@ export function MathQuest() {
     advancing.current = false
   }, [round?.question.id, screen])
 
+  function persist(update: Partial<StoredJourney>) {
+    if (!journey.current) return
+    journey.current = { ...journey.current, ...update }
+    void saveJourney(journey.current).then((saved) => {
+      if (!saved)
+        setNotice(
+          'Your answers could not be saved on this device, so this journey will not appear in My Journeys.',
+        )
+    })
+  }
   function navigate(destination: Screen) {
     if (screen === 'round' && round) setModal({ kind: 'leave', destination })
     else setScreen(destination)
@@ -112,6 +142,7 @@ export function MathQuest() {
     else setNotice('')
     answerLocked.current = false
     setSummary(null)
+    journey.current = newJourney(settings.nickname.trim(), settings.world)
     setRound({
       mode: 'calibration',
       question: generateQuestion(CALIBRATION_LEVELS[0], 4100),
@@ -121,6 +152,7 @@ export function MathQuest() {
       runtime: null,
       seed: 4100,
       changeMessage: '',
+      abilityBefore: null,
     })
     setScreen('round')
   }
@@ -130,8 +162,22 @@ export function MathQuest() {
       const seed = crypto.getRandomValues(new Uint32Array(1))[0]
       const runtime = availability.runtime
       const state = runtime.initialState(ability)
-      const level = runtime.chooseDifficulty(state, mixSeed(seed, 20160))
+      const level = runtime.chooseDifficulty(state, mixSeed(seed, POLICY_STREAM))
       answerLocked.current = false
+      if (journey.current?.answers.length)
+        journey.current = {
+          ...journey.current,
+          id: crypto.randomUUID(),
+          startedAt: new Date().toISOString(),
+          answers: [],
+          complete: false,
+          finalAbility: null,
+        }
+      persist({
+        startAbility: ability,
+        seed,
+        model: runtime.model,
+      })
       setRound({
         mode: 'play',
         question: generateQuestion(level, mixSeed(seed, 0)),
@@ -141,6 +187,7 @@ export function MathQuest() {
         runtime,
         seed,
         changeMessage: '',
+        abilityBefore: null,
       })
       setScreen('round')
     } catch {
@@ -179,9 +226,23 @@ export function MathQuest() {
       })
       return
     }
+    const saved = storedAnswer(
+      round.question,
+      optionId,
+      correct,
+      responseMs,
+      state?.belief.ability ?? null,
+    )
+    if (journey.current)
+      persist(
+        round.mode === 'calibration'
+          ? { calibration: [...journey.current.calibration, saved] }
+          : { answers: [...journey.current.answers, saved] },
+      )
     setRound({
       ...round,
       state,
+      abilityBefore: round.state?.belief.ability ?? null,
       records: [
         ...round.records,
         { question: round.question, optionId, correct, responseMs },
@@ -205,10 +266,17 @@ export function MathQuest() {
         const count = round.records.filter((record) => record.correct).length
         setCalibrationCorrect(count)
         setAbility(abilityFromCalibration(count))
+        persist({ startAbility: abilityFromCalibration(count) })
         setScreen('ready')
       } else {
-        const result = summarize(round.records, ability, settings.world)
+        const result = summarize(
+          round.records,
+          ability,
+          settings.world,
+          round.state?.belief.ability ?? ability,
+        )
         setSummary(result)
+        persist({ complete: true, finalAbility: result.finalAbility ?? null })
         if (settings.remember && !saveSummary(result))
           setNotice(
             'Your results are shown here, but could not be saved on this device.',
@@ -225,7 +293,7 @@ export function MathQuest() {
           : round.runtime && round.state
             ? round.runtime.chooseDifficulty(
                 round.state,
-                mixSeed(round.seed, 20160 + index),
+                mixSeed(round.seed, POLICY_STREAM + index),
               )
             : null
       if (level === null) throw new Error('No live controller')
@@ -241,13 +309,7 @@ export function MathQuest() {
         question,
         feedback: null,
         changeMessage:
-          round.mode === 'play'
-            ? level > round.question.level
-              ? 'A little more challenge.'
-              : level < round.question.level
-                ? 'Let’s build confidence.'
-                : 'Stay on this path.'
-            : '',
+          round.mode === 'play' ? changeMessage(round, level) : '',
       })
     } catch {
       setModal({
@@ -260,7 +322,11 @@ export function MathQuest() {
   const world = WORLDS.find((item) => item.id === settings.world)!
   const index = round ? round.records.length - (round.feedback ? 1 : 0) : 0
   return (
-    <Shell onHome={() => navigate('landing')} onLab={() => navigate('lab')}>
+    <Shell
+      onHome={() => navigate('landing')}
+      onLab={() => navigate('lab')}
+      onHistory={() => navigate('history')}
+    >
       {screen === 'landing' && (
         <Landing
           onStart={() => setScreen('setup')}
@@ -332,9 +398,34 @@ export function MathQuest() {
           ability={ability}
           nickname={settings.nickname.trim()}
           onAgain={() => setScreen('setup')}
-          onLab={() => setScreen('lab')}
+          onLab={() => {
+            setReplayId(journey.current?.id ?? null)
+            setScreen('replay')
+          }}
           notice={notice}
         />
+      )}
+      {screen === 'history' && (
+        <History
+          onReplay={(id) => {
+            setReplayId(id)
+            setScreen('replay')
+          }}
+          onBack={() => setScreen('landing')}
+        />
+      )}
+      {screen === 'replay' && replayId && (
+        <Suspense
+          fallback={<p className="page-section microcopy">Loading replay…</p>}
+        >
+          <Replay
+            id={replayId}
+            runtime={
+              availability.status === 'ready' ? availability.runtime : null
+            }
+            onBack={() => setScreen('history')}
+          />
+        </Suspense>
       )}
       {(screen === 'profile' || screen === 'train' || screen === 'lab') && (
         <PendingMode mode={screen} onBack={() => setScreen('landing')} />
@@ -397,8 +488,8 @@ export function MathQuest() {
           {modal.kind === 'leave' && (
             <>
               <p>
-                This unfinished round will be discarded. A completed round is
-                saved only if you chose to remember it.
+                This round will stop here. The answers you have already given
+                stay in My Journeys on this device.
               </p>
               <div className="actions">
                 <button
@@ -424,8 +515,8 @@ export function MathQuest() {
           {modal.kind === 'reset' && (
             <>
               <p>
-                Remove MathQuest’s saved settings and completed summaries from
-                this device?
+                Remove MathQuest’s saved settings, summaries, and every saved
+                journey from this device?
               </p>
               <div className="actions">
                 <button
@@ -438,6 +529,7 @@ export function MathQuest() {
                 <button
                   className="button subtle"
                   onClick={() => {
+                    void clearJourneys()
                     if (resetLocalData()) {
                       setSettings(DEFAULT_SETTINGS)
                       setNotice('MathQuest local data cleared.')
@@ -474,4 +566,21 @@ export function MathQuest() {
       )}
     </Shell>
   )
+}
+
+function changeMessage(round: Round, level: number) {
+  const now = round.state?.belief.ability
+  if (
+    now !== undefined &&
+    round.abilityBefore !== null &&
+    now !== round.abilityBefore
+  )
+    return now > round.abilityBefore
+      ? `You’re climbing — your path is now ${profileById(now).label}.`
+      : `Let’s steady the trail — your path is now ${profileById(now).label}.`
+  return level > round.question.level
+    ? 'A little more challenge.'
+    : level < round.question.level
+      ? 'Let’s build confidence.'
+      : 'Stay on this path.'
 }

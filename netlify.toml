@@ -1,0 +1,4 @@
+[build]
+  base = "mathquest"
+  command = "npm test && npm run build"
+  publish = "dist"

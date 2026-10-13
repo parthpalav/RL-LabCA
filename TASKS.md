@@ -59,12 +59,12 @@ Lane B imports the core. Lane B does not reimplement grading, the MDP, or Q-lear
 | A2 | A | MDP, reward, Q-learning, SARSA, baselines, CLI | Done |
 | A3 | A | Pilot, three seeds, held-out tests, bundled JSON models | Done |
 | A4 | A | Report draft filled with measured results, rubric evidence | Todo |
-| B1 | B | Landing, setup, calibration, 20-question play, results | In progress: screens are in, and live play now uses the saved Q-learning controller |
+| B1 | B | Landing, setup, calibration, 20-question play, results | Done: live play uses the saved Q-learning controller and re-estimates ability after every answer |
 | B2 | B | Test a profile: play or watch a simulated player | Todo |
 | B3 | B | Three SVG worlds, guide, trail, badges, phone and laptop layout | Todo |
 | B4 | B | Train a profile screen. Must not overwrite `public/models` | Todo |
 | B5 | B | Research Lab: charts, policy inspector, exports | Todo |
-| B6 | B | Static URL on Cloudflare Pages, GitHub Pages, or Netlify | Todo |
+| B6 | B | Static URL on Cloudflare Pages, GitHub Pages, or Netlify | Ready: Pages workflow and `netlify.toml` added; enable Pages (Source: GitHub Actions) in repo settings |
 
 The game faculty open is Lane B. The tables that choose the difficulty are Lane A. Play mode stays on the saved Q-learning file. Train a profile is a browser demonstration only.
 
@@ -79,6 +79,8 @@ From `mathquest/src/core/index.ts`:
 - `initialState(ability)`
 - `applyTransition(state, action, correct)` and `successProbability(ability, difficulty, strain)`
 - `trainAgent`, `greedyAction`, `actFrozen`, `fixedAct`, `ruleAct`, `randomAct`
+- `priorBelief`, `updateBelief`, `withAbility` for the live ability estimate.
+- `replayRound(policy, startAbility, answers, seed, { track })` to replay or what-if a saved journey.
 - `parseModel` for a saved Q-table. The reported run is 100000 episodes and writes `public/models/q-learning-default.json` and `public/models/sarsa-reference.json`.
 
 Do not render `question.spec` or `question.correctOptionId` before the answer is locked.

@@ -221,12 +221,14 @@ globalThis.fetch = async () =>
 const ready = await loadPlayRuntime(new AbortController().signal)
 assert.equal(ready.status, 'ready')
 if (ready.status === 'ready') {
-  const level = ready.runtime.chooseDifficulty(start, 1)
+  const live = ready.runtime.initialState(0)
+  const level = ready.runtime.chooseDifficulty(live, 1)
   assert.equal(level, 1)
-  const next = ready.runtime.observeAnswer(start, level, false)
-  assert.equal(next.previousDifficulty, 1)
-  assert.equal(next.wrongStreak, 1)
-  assert.equal(next.answeredCount, 1)
+  const next = ready.runtime.observeAnswer(live, level, false)
+  assert.equal(next.state.previousDifficulty, 1)
+  assert.equal(next.state.wrongStreak, 1)
+  assert.equal(next.state.answeredCount, 1)
+  assert.equal(next.state.ability, next.belief.ability)
 }
 globalThis.fetch = originalFetch
 console.log(

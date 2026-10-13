@@ -1205,3 +1205,216 @@ html[data-reduced-motion='true'] *::after {
   animation: none !important;
   scroll-behavior: auto !important;
 }
+
+/* My Journeys and Replay */
+.site-nav {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+.history-tools,
+.replay-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin: 24px 0 12px;
+}
+.file-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.file-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.file-button:focus-within {
+  outline: 3px solid var(--mint);
+  outline-offset: 3px;
+}
+.confirm-inline {
+  color: var(--muted);
+  font-size: 14px;
+}
+.text-button.danger {
+  color: var(--coral);
+}
+.journey-list,
+.step-list,
+.calibration-list {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0 0;
+}
+.journey-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.journey-card,
+.step-card {
+  border: 1px solid #3c4769;
+  border-radius: 12px;
+  background: #19213d;
+  padding: 20px;
+}
+.journey-card > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+.journey-card p {
+  margin: 10px 0 0;
+}
+.journey-card .actions {
+  margin-top: 16px;
+}
+.badge {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid #3c4769;
+  color: var(--muted);
+}
+.badge.done {
+  border-color: var(--mint);
+  color: var(--mint);
+}
+.calibration-list li {
+  padding: 6px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.calibration-list span {
+  color: var(--paper);
+  margin-right: 6px;
+}
+.replay-controls label {
+  color: var(--muted);
+  font-size: 14px;
+}
+.replay-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+.replay-charts figure {
+  margin: 0;
+  border: 1px solid #3c4769;
+  border-radius: 12px;
+  background: #1c2549;
+  padding: 16px;
+  min-width: 0;
+}
+.replay-charts figcaption {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.step-list {
+  display: grid;
+  gap: 12px;
+}
+.step-card {
+  border-left-width: 4px;
+}
+.step-card.solved {
+  border-left-color: #14a37f;
+}
+.step-card.unsolved {
+  border-left-color: var(--coral);
+}
+.step-card header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: baseline;
+}
+.step-card header span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.step-card p {
+  margin: 8px 0 0;
+}
+.step-prompt {
+  font-size: 18px;
+}
+.q-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.q-values span {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #3c4769;
+  color: var(--muted);
+}
+.q-values span.chosen {
+  border-color: #14a37f;
+  color: var(--paper);
+  background: rgba(20, 163, 127, 0.18);
+}
+.belief {
+  margin-top: 10px;
+}
+.belief-bars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+.belief-bars span {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 56px;
+}
+.belief-bars i {
+  display: block;
+  background: #14a37f;
+  border-radius: 4px 4px 0 0;
+}
+.belief-bars small {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.what-if-note {
+  color: #f0a83a;
+  font-size: 14px;
+}
+.text-button.flip {
+  margin-top: 10px;
+  padding-left: 0;
+}
+.text-button.flip.active {
+  color: #f0a83a;
+}
+@media (max-width: 800px) {
+  .replay-charts {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .site-nav {
+    gap: 12px;
+  }
+  .site-nav .nav-link {
+    font-size: 13px;
+  }
+  .step-prompt {
+    font-size: 16px;
+  }
+}

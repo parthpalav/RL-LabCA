@@ -1,9 +1,11 @@
 import type {
   Ability,
+  AbilityBelief,
   Difficulty,
   GameState,
   Question,
   QuestionOption,
+  TabularPolicy,
 } from '../core/index'
 
 export const WORLDS = [
@@ -57,17 +59,23 @@ export type SessionSummary = {
   points: number
   levels: Difficulty[]
   longestWrongStreak: number
+  finalAbility?: Ability
 }
 
 // UI port only. Lane A owns artifact validation, seeded greedy selection,
 // coverage fallback and observed-answer transitions. Bind to core/index when
 // that public API exists; never substitute UI rules for the RL controller.
+// The belief re-estimates the ability slot of the state after each answer.
+export type LiveState = { state: GameState; belief: AbilityBelief }
+export type ModelInfo = { algorithm: string; seed: number; timestamp: string }
 export type PlayRuntime = {
-  initialState: (ability: Ability) => GameState
-  chooseDifficulty: (state: GameState, policySeed: number) => Difficulty
+  policy: TabularPolicy
+  model: ModelInfo
+  initialState: (ability: Ability) => LiveState
+  chooseDifficulty: (live: LiveState, policySeed: number) => Difficulty
   observeAnswer: (
-    state: GameState,
+    live: LiveState,
     difficulty: Difficulty,
     correct: boolean,
-  ) => GameState
+  ) => LiveState
 }

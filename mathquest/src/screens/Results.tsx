@@ -55,8 +55,11 @@ export function Results({
       <section className="timeline-section">
         <h2>Your challenge trail</h2>
         <p>
-          Starting path: {profileById(ability).label}. Each column shows one
-          question’s level.
+          Starting path: {profileById(ability).label}.
+          {summary.finalAbility !== undefined &&
+            summary.finalAbility !== ability &&
+            ` As you played, the trail re-read your answers and moved you to ${profileById(summary.finalAbility).label}.`}{' '}
+          Each column shows one question’s level.
         </p>
         <ol className="difficulty-timeline">
           {records.map((record, index) => (

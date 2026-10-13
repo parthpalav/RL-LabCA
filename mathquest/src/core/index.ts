@@ -1,4 +1,8 @@
 export { parseModel, serializeModel } from './artifact'
+export { expectedAbility, priorBelief, updateBelief, withAbility } from './abilityTracker'
+export type { AbilityBelief } from './abilityTracker'
+export { POLICY_STREAM, replayRound } from './replay'
+export type { ReplayOptions, ReplayStep } from './replay'
 export type { ModelArtifact } from './artifact'
 export { isValidAction, nextDifficulty, validActions } from './actionMask'
 export { DEFAULT_RULE, emptyRuleMemory, fixedAct, randomAct, ruleAct, ruleObserve, stepToward } from './baselines'
@@ -37,6 +41,7 @@ export {
   SIMULATOR_VERSION,
   STATE_SCHEMA,
   STRESS_RESPONSE,
+  TRACKER,
   TRAIN,
 } from './config'
 export { PROFILES, abilityFromCalibration, profileById } from './profiles'

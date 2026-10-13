@@ -5,6 +5,7 @@ export function summarize(
   records: AnswerRecord[],
   ability: Ability,
   world: WorldId,
+  finalAbility: Ability = ability,
 ): SessionSummary {
   let streak = 0
   let longestWrongStreak = 0
@@ -23,5 +24,6 @@ export function summarize(
     ),
     levels: records.map((record) => record.question.level),
     longestWrongStreak,
+    finalAbility,
   }
 }

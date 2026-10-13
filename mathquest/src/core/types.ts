@@ -35,6 +35,14 @@ export type QuestionSpec =
   | { kind: 'one-step'; a: number; product: number }
   | { kind: 'two-step'; a: number; b: number; c: number }
   | { kind: 'mixed'; a: number; b: number; c: number; d: number }
+  | { kind: 'pct-change'; whole: number; percent: number; up: boolean }
+  | { kind: 'frac-mul'; a: number; b: number; c: number; d: number; divide: boolean }
+  | { kind: 'neg'; a: number; b: number; c: number }
+  | { kind: 'pow-root'; a: number; root: number; c: number }
+  | { kind: 'both-sides'; a: number; b: number; c: number; d: number }
+  | { kind: 'bracket-eq'; a: number; b: number; c: number }
+  | { kind: 'frac-eq'; a: number; b: number; c: number }
+  | { kind: 'discount'; price: number; percent: number; qty: number }
 
 export type QuestionOption = {
   id: '1' | '2' | '3' | '4'

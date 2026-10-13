@@ -3,7 +3,7 @@ export const STATE_SCHEMA = 'ability4-diff5-strain4-streak4-count21'
 export const ACTION_MASK_VERSION = 1
 export const SIMULATOR_VERSION = 'response-v1'
 export const REWARD_VERSION = 'reward-v1'
-export const GENERATOR_VERSION = 'questions-v1'
+export const GENERATOR_VERSION = 'questions-v2'
 
 export const N_ABILITIES = 4
 export const N_DIFFICULTIES = 5
@@ -56,3 +56,9 @@ export const TRAIN = {
 } as const
 
 export const CALIBRATION_LEVELS = [1, 2, 2, 3, 3, 4] as const
+
+export const TRACKER = {
+  priorSpread: 0.5,
+  memory: 0.9,
+  switchMargin: 0.1,
+} as const

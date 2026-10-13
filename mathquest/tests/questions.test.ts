@@ -32,3 +32,24 @@ describe('question engine', () => {
     }
   })
 })
+
+describe('hard levels', () => {
+  it.each([4, 5] as Difficulty[])('level %s mixes at least five harder topics', (level) => {
+    const topics = new Set<string>()
+    for (let seed = 0; seed < 500; seed += 1) topics.add(generateQuestion(level, seed).topic)
+    expect(topics.size).toBeGreaterThanOrEqual(5)
+  })
+
+  it('level 5 equations are satisfied by their answer', () => {
+    for (let seed = 0; seed < 1000; seed += 1) {
+      const { spec } = generateQuestion(5, seed)
+      const x = solveSpec(spec)
+      if (spec.kind === 'both-sides') {
+        expect(x.denominator).toBe(1)
+        expect(spec.a * x.numerator + spec.b).toBe(spec.c * x.numerator + spec.d)
+      }
+      if (spec.kind === 'bracket-eq') expect(spec.a * (x.numerator + spec.b)).toBe(spec.c)
+      if (spec.kind === 'frac-eq') expect(x.numerator / spec.a + spec.b).toBe(spec.c)
+    }
+  })
+})
