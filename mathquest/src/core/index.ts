@@ -1,4 +1,28 @@
+export { parseModel, serializeModel } from './artifact'
+export type { ModelArtifact } from './artifact'
 export { isValidAction, nextDifficulty, validActions } from './actionMask'
+export { DEFAULT_RULE, emptyRuleMemory, fixedAct, randomAct, ruleAct, ruleObserve, stepToward } from './baselines'
+export type { RuleConfig, RuleMemory } from './baselines'
+export {
+  actFrozen,
+  conservativeFallback,
+  createPolicy,
+  epsilonFor,
+  epsilonGreedy,
+  greedyAction,
+  maxValidQ,
+  qUpdate,
+  qValue,
+  tdTarget,
+  tdUpdate,
+} from './policy'
+export type { TabularPolicy } from './policy'
+export { correctFromUniform, successProbability } from './simulator'
+export type { ResponseModel } from './simulator'
+export { runFrozenEpisode, runTrainingEpisode, trainAgent } from './train'
+export type { Algorithm, TrainOptions, TrainResult } from './train'
+export { applyTransition } from './transitions'
+export type { RewardParts, Transition } from './transitions'
 export {
   ACTION_MASK_VERSION,
   CALIBRATION_LEVELS,

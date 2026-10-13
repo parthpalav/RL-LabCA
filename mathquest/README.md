@@ -10,4 +10,9 @@ npm test
 npm run dev
 ```
 
-`npm run train`, `npm run evaluate`, `npm run experiments`, and `npm run export:evidence` arrive with the RL core. They are listed now so both lanes share one script contract.
+```text
+npm test
+npm run experiments
+```
+
+`npm run experiments` is the reported run: alpha pilot, 100000 episodes, seeds 11, 29, and 47, then the held-out test. It writes `public/models` and `artifacts/`. `npm run experiments -- --smoke` is a short labeled check and does not replace that run.

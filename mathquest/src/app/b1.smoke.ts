@@ -1,6 +1,20 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { CALIBRATION_LEVELS, generateQuestion } from '../core/index'
+import {
+  ACTION_MASK_VERSION,
+  CALIBRATION_LEVELS,
+  GENERATOR_VERSION,
+  N_ACTIONS,
+  N_STATES,
+  REWARD_VERSION,
+  SCHEMA_VERSION,
+  SIMULATOR_VERSION,
+  STATE_SCHEMA,
+  TRAIN,
+  encodeState,
+  generateQuestion,
+  initialState,
+} from '../core/index'
 import { QuestionScreen } from '../screens/QuestionScreen'
 import { Results } from '../screens/Results'
 import { summarize } from './summary'
@@ -163,13 +177,56 @@ for (const [body, status, expected] of [
     'The adventure is waiting for its saved model',
   ],
   ['{corrupt', 200, 'The saved model could not be read'],
-  ['{}', 200, 'The game controller is not connected yet'],
+  ['{}', 200, 'The saved model does not match this game'],
 ] as const) {
   globalThis.fetch = async () => new Response(body, { status })
   const availability = await loadPlayRuntime(new AbortController().signal)
   assert.equal(availability.status, 'unavailable')
   if (availability.status === 'unavailable')
     assert.equal(availability.title, expected)
+}
+const cells = N_STATES * N_ACTIONS
+const qValues = Array.from({ length: cells }, () => 0)
+const visitCounts = Array.from({ length: cells }, () => 0)
+const start = initialState(0)
+const decrease = encodeState(start) * N_ACTIONS
+qValues[decrease] = 1
+visitCounts[decrease] = 1
+globalThis.fetch = async () =>
+  new Response(
+    JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      algorithm: 'q-learning',
+      seed: 47,
+      stateSchema: STATE_SCHEMA,
+      actionMaskVersion: ACTION_MASK_VERSION,
+      rewardVersion: REWARD_VERSION,
+      simulatorVersion: SIMULATOR_VERSION,
+      generatorVersion: GENERATOR_VERSION,
+      episodes: TRAIN.episodes,
+      smoke: false,
+      timestamp: '2026-10-13T00:00:00.000Z',
+      hyperparameters: {
+        alpha: TRAIN.alpha,
+        gamma: TRAIN.gamma,
+        epsilonInitial: TRAIN.epsilonInitial,
+        epsilonFinal: TRAIN.epsilonFinal,
+        epsilonDecayFraction: TRAIN.epsilonDecayFraction,
+      },
+      qValues,
+      visitCounts,
+    }),
+    { status: 200 },
+  )
+const ready = await loadPlayRuntime(new AbortController().signal)
+assert.equal(ready.status, 'ready')
+if (ready.status === 'ready') {
+  const level = ready.runtime.chooseDifficulty(start, 1)
+  assert.equal(level, 1)
+  const next = ready.runtime.observeAnswer(start, level, false)
+  assert.equal(next.previousDifficulty, 1)
+  assert.equal(next.wrongStreak, 1)
+  assert.equal(next.answeredCount, 1)
 }
 globalThis.fetch = originalFetch
 console.log(

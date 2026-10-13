@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="420" viewBox="0 0 860 420">
+  <rect width="100%" height="100%" fill="#fffaf0"/>
+  <text x="70" y="28" font-size="16" fill="#17203a">Test mean return. Q-learning and SARSA are means of training-seed means.</text>
+  <line x1="70" y1="50" x2="70" y2="340" stroke="#17203a"/>
+  <line x1="70" y1="340.0" x2="840" y2="340.0" stroke="#17203a"/>
+  <text x="16" y="195" font-size="12" fill="#17203a">Return</text>
+  <rect x="100.8" y="50.0" width="92.4" height="290.0" fill="#8b5cf6"/>
+  <text x="147.0" y="372" text-anchor="middle" font-size="12" fill="#17203a">Q-learning</text>
+  <text x="147.0" y="44.0" text-anchor="middle" font-size="12" fill="#17203a">15.42</text>
+  <rect x="254.8" y="51.1" width="92.4" height="288.9" fill="#0f766e"/>
+  <text x="301.0" y="372" text-anchor="middle" font-size="12" fill="#17203a">SARSA</text>
+  <text x="301.0" y="45.1" text-anchor="middle" font-size="12" fill="#17203a">15.36</text>
+  <rect x="408.8" y="109.5" width="92.4" height="230.5" fill="#fbbf24"/>
+  <text x="455.0" y="372" text-anchor="middle" font-size="12" fill="#17203a">Fixed</text>
+  <text x="455.0" y="103.5" text-anchor="middle" font-size="12" fill="#17203a">12.26</text>
+  <rect x="562.8" y="71.8" width="92.4" height="268.2" fill="#fb7185"/>
+  <text x="609.0" y="372" text-anchor="middle" font-size="12" fill="#17203a">Rule</text>
+  <text x="609.0" y="65.8" text-anchor="middle" font-size="12" fill="#17203a">14.26</text>
+  <rect x="716.8" y="293.3" width="92.4" height="46.7" fill="#94a3b8"/>
+  <text x="763.0" y="372" text-anchor="middle" font-size="12" fill="#17203a">Random</text>
+  <text x="763.0" y="287.3" text-anchor="middle" font-size="12" fill="#17203a">2.48</text>
+</svg>

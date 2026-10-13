@@ -56,10 +56,10 @@ Lane B imports the core. Lane B does not reimplement grading, the MDP, or Q-lear
 | ID | Lane | Work | Status |
 |---|---|---|---|
 | A1 | A | Question engine, rational grading, state codec, action masks, profiles | Done |
-| A2 | A | MDP, reward, Q-learning, SARSA, baselines, CLI | Todo |
-| A3 | A | Pilot, three seeds, held-out tests, bundled JSON models | Todo |
+| A2 | A | MDP, reward, Q-learning, SARSA, baselines, CLI | Done |
+| A3 | A | Pilot, three seeds, held-out tests, bundled JSON models | Done |
 | A4 | A | Report draft filled with measured results, rubric evidence | Todo |
-| B1 | B | Landing, setup, calibration, 20-question play, results | In progress: calibration and UI verified; adaptive play awaits A2 API and A3 model |
+| B1 | B | Landing, setup, calibration, 20-question play, results | In progress: screens are in, and live play now uses the saved Q-learning controller |
 | B2 | B | Test a profile: play or watch a simulated player | Todo |
 | B3 | B | Three SVG worlds, guide, trail, badges, phone and laptop layout | Todo |
 | B4 | B | Train a profile screen. Must not overwrite `public/models` | Todo |
@@ -77,6 +77,9 @@ From `mathquest/src/core/index.ts`:
 - `PROFILES` for the four labels
 - `encodeState`, `decodeState`, `validActions`, `nextDifficulty`
 - `initialState(ability)`
+- `applyTransition(state, action, correct)` and `successProbability(ability, difficulty, strain)`
+- `trainAgent`, `greedyAction`, `actFrozen`, `fixedAct`, `ruleAct`, `randomAct`
+- `parseModel` for a saved Q-table. The reported run is 100000 episodes and writes `public/models/q-learning-default.json` and `public/models/sarsa-reference.json`.
 
 Do not render `question.spec` or `question.correctOptionId` before the answer is locked.
 

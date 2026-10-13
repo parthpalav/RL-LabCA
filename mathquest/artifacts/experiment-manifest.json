@@ -1,0 +1,27 @@
+{
+  "smoke": false,
+  "startedAt": "2026-10-13T07:12:15.356Z",
+  "finishedAt": "2026-10-13T07:12:17.848Z",
+  "runtimeSeconds": 2.467,
+  "config": {
+    "smoke": false,
+    "episodes": 100000,
+    "pilotEpisodes": 2000,
+    "pilotSeed": 7,
+    "seeds": [
+      11,
+      29,
+      47
+    ],
+    "alphas": [
+      0.05,
+      0.1,
+      0.2
+    ],
+    "validationPerProfile": 50,
+    "checkpointPerProfile": 25,
+    "testPerProfile": 100,
+    "pilotPerProfile": 20,
+    "checkpointInterval": 250
+  }
+}

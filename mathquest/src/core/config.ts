@@ -42,7 +42,7 @@ export const STRESS_RESPONSE = {
 export const TRAIN = {
   alpha: 0.1,
   gamma: 0.95,
-  episodes: 5000,
+  episodes: 100000,
   epsilonInitial: 1,
   epsilonFinal: 0.05,
   epsilonDecayFraction: 0.8,
