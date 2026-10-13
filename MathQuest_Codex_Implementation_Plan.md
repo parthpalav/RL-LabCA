@@ -6,7 +6,7 @@ Prepared 13 October 2026. Deliver a local mathematics game and a reproducible Re
 
 Read this entire brief before implementation. Treat it as the complete handoff from the planning conversation. Build the project, run the experiments, verify the mathematics and RL implementation, and produce the documentation and report evidence. Do not stop at a UI mockup or a plan. Use the defaults here for ordinary decisions; ask only when information is genuinely necessary. Preserve any applicable repository instructions.
 
-The current request that produced this file was to plan the project, not build or publish it. When the user supplies this file to a new Codex task and asks to start work, implement the local project. Hosting or public deployment is not required. Do not create accounts, use paid services, send messages, or publish without the user's instruction.
+The current request that produced this file was to plan the project, not build or publish it. When the user supplies this file to a new Codex task and asks to start work, implement the project. A public static URL is required so a faculty member can open the game and test it without installing anything. Do not create accounts, use paid services, send messages, or publish until the user asks for the URL to go live. The scientific training run still happens on the student laptop.
 
 Required RL algorithms: **tabular Q-learning and tabular SARSA**. Q-learning is the primary game controller; SARSA is the academic comparison. Both are explicitly in the supplied syllabus. Fixed, random, and rule-based controllers are baselines, not additional RL algorithms. Epsilon-greedy is the exploration strategy, not a third control algorithm. Do not add out-of-syllabus algorithms.
 
@@ -156,11 +156,37 @@ No mandatory speed timer, lives, elimination, punishment screen, or session endi
 
 ### Separate modes
 
-- **Play:** frozen Q-learning policy, actual user responses. No online learning by default.
-- **Simulation Demo:** select one of four explicit simulated profiles and observe trained-policy decisions. Can pause, step once, replay, and switch controllers.
-- **Research Lab:** train models, view real experiment results, inspect policy decisions, compare algorithms, export evidence.
+- **Play:** a real 20-question game. Calibration, or an explicit profile choice, sets the ability category. The frozen Q-learning policy then chooses the next difficulty from that profile plus the player's own correct and wrong answers. No online learning during Play.
+- **Test a profile:** faculty or anyone else picks one of the four profiles below and either answers the questions themselves with that profile locked, or watches a simulated player of that profile. Pause, step once, replay, and switch controllers stay available on the watch path.
+- **Train a profile:** a short in-browser demonstration that learns on simulated players of one selected profile and shows the reward curve plus one 20-question trace. It does not replace the bundled model used by Play.
+- **Research Lab:** full experiment results, policy inspection, algorithm comparison, and export. This is the viva evidence view, linked from the landing page but not required to enjoy the game.
 
 Keep technical vocabulary in the Lab and report, not throughout the player's journey. Explain ordinary play with phrases such as “A little more challenge” and “Let's build confidence.” Do not portray the controller as a generative AI tutor.
+
+### Faculty and visitor test path
+
+The landing page is the product. A visitor, including the faculty member, opens one URL, with no login, no install, and no Node. Three actions are visible immediately:
+
+| Action | What she does | What the agent does |
+|---|---|---|
+| Play a round | Optional nickname, pick a world, answer 6 calibration questions, then 20 game questions | Calibration sets her profile. After every answer the saved Q-learning policy may ease, hold, or raise the next question by one level |
+| Test a profile | Pick Starting out, Building up, Comfortable, or Ready for a challenge. Then choose “I will answer” or “Watch a simulated player” | Ability stays on the chosen profile. Her answers, or the simulated player's answers, still move strain and mistake streak, so difficulty keeps adapting inside that profile |
+| Train a profile | Pick the same four profiles and press Train | The browser runs a short Q-learning demonstration on simulated players of only that profile, then shows the learning curve and a sample session. Play continues to use the saved class model |
+
+Phone width matters: she may open the link on a phone. The 390 px layout in Section 13 is part of this test path, not a later nicety.
+
+### Player profiles
+
+These four labels are the ability categories already in the MDP. Use the plain names in the game and the numeric IDs in code, logs, and the report.
+
+| Game label | Ability ID | How a human gets it | What training assumed |
+|---|---:|---|---|
+| Starting out | 0 | Calibration score 0–1, or she picks it | Correctness falls quickly as difficulty rises |
+| Building up | 1 | Calibration score 2–3, or she picks it | Comfortable on easier levels, uneven on harder ones |
+| Comfortable | 2 | Calibration score 4–5, or she picks it | Can sustain mid-to-high difficulty if mistakes stay rare |
+| Ready for a challenge | 3 | Calibration score 6, or she picks it | High chance of solving harder questions until strain builds |
+
+“Train as per user profile” means the table is trained with ability inside the state, so each profile already has its own learned actions. A live session does not retrain that table. Retraining on one person's answers would change the submitted experiment during the demo and would not be enough data for a 6,720-state table. The Train a profile screen exists so she can see learning happen for a chosen profile; label it as a demonstration and leave `public/models/q-learning-default.json` unchanged.
 
 ### Baseline controllers
 
@@ -607,25 +633,88 @@ Artifact manifest records source/config version, controller versions, seeds, sel
 
 Required evidence exports: CSV/JSON metrics, model files, selected session traces, chart SVGs and 300-dpi-equivalent PNGs where supported, and screenshots. Ensure exported charts have axis labels, units, legend, legible fonts, sample sizes, and no misleading smoothing. If screenshot automation is unavailable, provide exact manual capture instructions and identify the verification gap.
 
-## 16. Implementation phases and completion gates
+## 16. Demo delivery decision
 
-Work incrementally and keep the game runnable. Do not spend the initial hours on artwork while the environment is undefined.
+**Two surfaces, both required.**
 
-| Phase | Work | Completion gate | Rough effort |
-|---|---|---|---|
-| 1. Foundations | Scaffold, state codec, masks, RNG, question engine, exact grading | Tests pass; all five levels generate valid questions | 1–1.5 h |
-| 2. RL core | MDP, reward, Q-learning, SARSA, baselines, CLI | Hand-calculated updates and terminal logic verified | 1–1.5 h |
-| 3. Experiments | Pilot tuning, seeded runs, metrics, exports | Actual reproducible comparisons exist | 1–1.5 h |
-| 4. Playable game | Calibration, 20-question loop, feedback, summary, trained inference | Complete a live session with no missing flow | 1–2 h |
-| 5. Visual polish | Three worlds, guide, trail, badges, restrained motion | Attractive responsive game with accessibility checks | 1.5–2 h |
-| 6. Lab and evidence | Charts, inspector, worker controls, downloads | Controller inspection and actual results work | 1–1.5 h |
-| 7. Verification and documentation | Browser QA, performance measurement, report/viva material | Acceptance checklist and evidence links complete | 1–1.5 h |
+| Who | Where | What they get |
+|---|---|---|
+| Faculty member, classmates, anyone with the link | Public static URL | A finished game: Play a round, Test a profile, Train a profile. No install |
+| Student, during the viva | Same URL, plus the local app and `artifacts/` | The game, then the Research Lab, comparison table, seeds, and one hand-traced update |
 
-These ranges are estimates and can overlap in practice. The priority order is core correctness → genuine results → playable experience → graphics → report polish. All required phases still need completion. Avoid adding optional multiplayer, accounts, social features, native installers, or more algorithms while required work remains.
+The URL is how she tests. Local remains how the experiment is reproduced. Do not ask her to clone the repo or run npm.
 
-If the user restores a strict few-hour deadline, deliver the scientifically complete minimum with a polished single active scene first; record which additional graphics/Lab features remain. Do not silently label a reduced version as the full scope in this brief.
+| What she should be able to do on the URL | What stays on the student laptop |
+|---|---|
+| Finish a real 20-question game that adapts after her answers | `npm run experiments`, the three training seeds, and the held-out comparison |
+| Lock Starting out or Ready for a challenge and either play or watch | The official metrics, stress test, and report figures |
+| Run the short Train a profile demonstration in her browser | Replacing or republishing the bundled Q-table |
 
-## 17. Verification and meaningful tests
+The project still has no server, no accounts, and no downloaded model weights. The published site is the Vite `dist` folder: the game, the two JSON tables, and the short in-browser trainer. A network outage must not be the only way to present the viva, so `npm run preview` on the laptop has to offer the same three actions.
+
+### What “models” means here
+
+There are **no neural networks, no LLMs, and no Hugging Face or API models**. Do not add PyTorch, TensorFlow, ONNX, Ollama, or any paid inference service.
+
+The only artifacts to bundle are two JSON Q-tables produced by this project’s own training scripts:
+
+| File | Contents | Approx. size |
+|---|---|---|
+| `public/models/q-learning-default.json` | Frozen Q-learning table for live play: hyperparameters, reward config, schema version, Q-values, visit counts. Median validation seed, not the best test seed. | Well under 1 MB |
+| `public/models/sarsa-reference.json` | Matching SARSA table for the Lab comparison and stepped demo | Well under 1 MB |
+
+Generate them with `npm run experiments` (or the documented train/evaluate scripts) on the laptop, then commit the chosen defaults into `public/models/`. The browser loads those files and acts greedily. It does not call an external model at runtime.
+
+### Required static URL
+
+Publish after the game in Phase 4 is actually playable and the bundled tables exist, then update the URL again after visual polish if the first deploy was early. The production build is a static Vite site: HTML, JS, CSS, SVG, and the two JSON tables. Play, Test a profile, Train a profile, and the Research Lab worker all run in the visitor’s browser.
+
+Suitable free static hosts, in order:
+
+1. **Cloudflare Pages** — connect the Git repo, build command `npm run build`, output directory `dist`. No server, no environment secrets.
+2. **GitHub Pages** — same build, publish `dist` from the repository that already holds the code.
+3. **Netlify** — same static settings if the repo is already there.
+
+Do not use a Node server, Docker, a database, or a GPU host. `npm run dev` stays on localhost and is not the public URL. Opening `dist/index.html` via `file://` is not a supported launch path; the host must serve the folder.
+
+What the URL shows: landing, calibration, a full game, profile testing, the short profile-training demonstration, the bundled policy, and Lab charts when the result JSON is included in the build. What it does not show: the official CLI experiment run, or a claim that her click retrained the submitted model on a server. If the URL is opened in the viva, let her play or pick a profile first, then open the local Lab for the scientific table.
+
+## 17. Final build phases and completion gates
+
+Work in this order. Keep each phase runnable before starting the next. Do not spend the early hours on artwork or hosting while the environment and the Q-updates are still unverified.
+
+| Phase | Work | Completion gate | Rough effort | Shown as |
+|---|---|---|---|---|
+| 1. Foundations | Vite + React + TypeScript scaffold, state codec, action masks, split RNGs, five-level question engine, exact rational grading | Tests pass; 1,000 questions per level are valid and reproducible | 1–1.5 h | Local tests only |
+| 2. RL core | MDP transitions, reward, Q-learning, SARSA, fixed/rule/random baselines, Node CLI | Hand-calculated updates and the 20-question terminal rule match the tests | 1–1.5 h | CLI smoke run |
+| 3. Experiments and bundled tables | Alpha pilot, three seeds, held-out tests, baselines, stress test, export the two JSON models into `public/models/` | Real comparison files exist; the game can load a schema-valid default model | 1–1.5 h | Local artifacts; these become the “models” |
+| 4. Playable game | Calibration, Test a profile, 20-question loop, feedback, summary, greedy inference from the bundled Q-table | One full session completes, and each of the four profiles can be locked and played or watched | 1–2 h | Local browser, then the faculty URL |
+| 5. Visual polish | Three SVG worlds, guide, trail, badges, restrained motion, reduced-motion and mute | Landing through results looks intentional at 1280×800 and 390 px | 1.5–2 h | Local browser and the same URL |
+| 6. Research Lab and profile training | Charts, policy inspector, one training worker, the Train a profile demonstration, downloads of the real Phase 3 results | Inspector agrees with the bundled table; a profile training run is visibly separate from that table | 1–1.5 h | Local browser and the same URL |
+| 7. Verification and report | Browser QA, phone-width pass, timing/memory notes, report draft, viva guide, rubric evidence map | Checklist in Section 22 is filled with measured evidence, not placeholders | 1–1.5 h | Local viva script plus the public link |
+| 8. Faculty URL | `npm run build`, publish `dist` to Cloudflare Pages, GitHub Pages, or Netlify | She can Play, Test a profile, and Train a profile from the link with no install and no runtime API | ~30 min once Phase 4 is playable; refresh after Phase 6 | The link sent to faculty |
+
+Priority if time is short: a playable Phase 4 game and its URL before extra Lab charts. A URL without the four profiles and a finished 20-question round is not the faculty demo. A local-only build is not enough, because she is not expected to install the project.
+
+These ranges are estimates and can overlap in practice. Phases 1–8 are required for this delivery. Avoid multiplayer, accounts, social features, native installers, extra algorithms, and any hosted model API while required work remains.
+
+If a strict few-hour deadline returns, deliver Phases 1–4 and a single polished scene, with the Phase 3 artifacts already real. Record which graphics and Lab sections remain. Do not describe that cut as the full scope of this brief.
+
+### Local commands the viva should use
+
+After implementation, the README must document these exactly:
+
+```text
+npm install
+npm test
+npm run experiments          # writes artifacts/ and refreshes public/models/
+npm run dev                  # http://localhost:5173  — development demo
+npm run build && npm run preview   # production build, still local
+```
+
+Faculty test order: send the URL, let her press Play a round or Test a profile, and leave her on the game. Viva order, about 3–5 minutes: she or the student plays a few questions, switches from Starting out to Ready for a challenge, runs Train a profile once, then opens the comparison table and names one limitation.
+
+## 18. Verification and meaningful tests
 
 ### Mathematics
 
@@ -667,7 +756,7 @@ If the user restores a strict few-hour deadline, deliver the scientifically comp
 
 Keep tests focused on correctness and meaningful failure modes, not incidental implementation details. Perform screenshot review of landing, calibration, play, correct/wrong feedback, completion, and Lab comparisons. Record actual performance checks against the targets in Section 14.
 
-## 18. Rubric evidence map
+## 19. Rubric evidence map
 
 | Rubric requirement | Evidence to deliver | Likely location |
 |---|---|---|
@@ -685,7 +774,7 @@ Keep tests focused on correctness and meaningful failure modes, not incidental i
 
 This is an evidence plan, not a grading guarantee. Add a final checklist identifying missing evidence rather than assigning yourself 25/25.
 
-## 19. Report writing plan
+## 20. Report writing plan
 
 Create an editable Markdown report draft populated with actual outputs, then use the supplied Word format if the user asks for a DOCX. Do not produce a document with invented performance figures or administrative details. If generating Word/PDF, use the relevant document skills and visually verify the result.
 
@@ -717,7 +806,7 @@ Specific section content:
 - **4.7:** Summarize actual findings, including negative or mixed findings. Do not write the conclusion before results exist.
 - **Appendix:** Commands, file structure, configuration, source snippets, scenario seeds, additional charts, and code/repository location. A public GitHub repository is optional, not required for local execution.
 
-## 20. Viva preparation
+## 21. Viva preparation
 
 Provide a short viva guide with answers to these questions:
 
@@ -742,7 +831,7 @@ Provide a short viva guide with answers to these questions:
 
 Demo sequence, about 3–5 minutes: show the game; answer a few questions; open a simulated beginner/advanced session; inspect a real decision; show the comparison table and learning graph; explain one limitation. Use a known reproducible scenario for reliable demonstration, while keeping reported test results unbiased.
 
-## 21. Definition of done
+## 22. Definition of done
 
 - [ ] All required algorithms are Q-learning and SARSA, with syllabus links documented.
 - [ ] Objective question engine includes five levels and exact grading.
@@ -753,15 +842,17 @@ Demo sequence, about 3–5 minutes: show the game; answer a few questions; open 
 - [ ] Pilot parameter evidence and stress-test evidence exist.
 - [ ] Attractive game has three original SVG worlds, guide, progress trail, feedback, and achievements.
 - [ ] Calibration, 20-question play, summary, and review work end to end.
+- [ ] All four profiles can be played and watched, and Train a profile runs without overwriting the bundled model.
+- [ ] A public static URL lets a faculty member test Play, Test a profile, and Train a profile with no install.
 - [ ] Lab shows real histories, comparisons, policy values, and exports.
-- [ ] No required GPU, cloud service, account, or runtime external API.
+- [ ] No required GPU, account, database, or runtime external API. Static hosting of the built site is required.
 - [ ] Mathematical, RL, reproducibility, and UI checks pass.
 - [ ] Hardware claims distinguish calculated budgets from measured behavior.
 - [ ] Every report section and rubric requirement has concrete evidence.
 - [ ] README, implementation notes, assumptions, viva guide, report draft, references, and evidence map are complete.
 - [ ] No fabricated claims, test results, user-study findings, or student details.
 
-## 22. References and source handling
+## 23. References and source handling
 
 Use sources actually read or used in implementation. Cite them near the associated discussion and in the report reference list. Do not describe the research paper's implementation or results as MathQuest's results.
 
@@ -774,6 +865,6 @@ Use sources actually read or used in implementation. Cite them near the associat
 
 This brief contains implementation decisions and synthetic-model specifications created for this project; those are not copied scientific findings. Preserve that distinction in the report.
 
-## 23. Final handoff instruction
+## 24. Final handoff instruction
 
-Implement MathQuest locally from this brief. Start with the mathematics engine and MDP, verify Q-learning and SARSA, generate real comparisons, and then complete the illustrated game and Research Lab. Maintain concise progress updates. At completion, give the user the working local launch instructions, tested status, measured experiment findings, report evidence, and any material verification limits. Keep the viva explanation simple enough that the student can trace one state, action, reward, and update by hand.
+Implement MathQuest from this brief. Start with the mathematics engine and MDP, verify Q-learning and SARSA, generate real comparisons, and then complete the illustrated game, the four-profile test path, the Train a profile demonstration, and the Research Lab. Publish the static game so a faculty member can test it from a URL without installing anything. The CLI experiment suite still runs on the student laptop and is not replaced by that URL. Bundle only the two JSON Q-tables this project trains; do not add a neural model or an inference API. Maintain concise progress updates. At completion, give the user the public URL, the local launch instructions, tested status, measured experiment findings, report evidence, and any material verification limits. Keep the viva explanation simple enough that the student can trace one state, action, reward, and update by hand.
