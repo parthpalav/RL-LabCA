@@ -165,15 +165,29 @@ export function DecisionDetails({
                 : `${audit.reward.total.toFixed(4)} + ${model.hyperparameters.gamma} × ${nextMax!.toFixed(4)}`}{' '}
               = {target.toFixed(4)}
             </code>
-            <code>
-              Qnew = {selected.value.toFixed(4)} + {model.hyperparameters.alpha}{' '}
-              × ({target.toFixed(4)} − {selected.value.toFixed(4)}) ={' '}
-              {tdUpdate(
-                selected.value,
-                model.hyperparameters.alpha,
-                target,
-              ).toFixed(4)}
-            </code>
+            {model.hyperparameters.alphaDecay != null ? (
+              <>
+                <code>
+                  α_visit = min({model.hyperparameters.alpha}, 1 / (1 + visits)^
+                  {model.hyperparameters.alphaDecay})
+                </code>
+                <code>Qnew = Q(s,a) + α_visit × (target − Q(s,a))</code>
+                <p className="microcopy">
+                  The loaded v2 model uses a visit-dependent step size; base α
+                  is not the step size on every update.
+                </p>
+              </>
+            ) : (
+              <code>
+                Qnew ={' '}
+                {tdUpdate(
+                  selected.value,
+                  model.hyperparameters.alpha,
+                  target,
+                ).toFixed(4)}{' '}
+                (constant α = {model.hyperparameters.alpha})
+              </code>
+            )}
             <p className="microcopy">
               This uses the live post-answer state, including tracking. Official
               training held ability fixed; this illustration is not a recorded

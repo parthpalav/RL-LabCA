@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import {
   GENERATOR_VERSION,
+  SIMULATOR_VERSION,
   PROFILES,
   REWARD,
   RESPONSE,
@@ -99,7 +100,9 @@ export function ResearchLab({
           <h2>
             {availability.status === 'loading'
               ? 'Loading the saved model…'
-              : availability.title}
+              : availability.status === 'unavailable'
+                ? availability.title
+                : 'Model unavailable'}
           </h2>
           <p>
             Policy inspection and controller checks require the validated model.
@@ -129,7 +132,7 @@ export function ResearchLab({
           )}
           <ScoringExplanation />
           <div className="lab-callout">
-            <h2>Why correct answers may stay at a moderate level</h2>
+            <h2>Why a correct answer is not an automatic level-up</h2>
             <p>
               Play updates the state and the ability estimate; it does not
               retrain the table. A correct-answer streak is not a command to
@@ -206,7 +209,8 @@ function ModelOverview({ runtime }: { runtime: PlayRuntime }) {
         <div>
           <dt>α / γ</dt>
           <dd>
-            {model.hyperparameters?.alpha} / {model.hyperparameters?.gamma}
+            {model.hyperparameters?.alpha} / {model.hyperparameters?.gamma} · α
+            decay {model.hyperparameters?.alphaDecay ?? 'none'}
           </dd>
         </div>
         <div>
@@ -525,7 +529,7 @@ function ControllerCheck({ runtime }: { runtime: PlayRuntime }) {
           </table>
         </div>
         <p className="microcopy">
-          Response-v1: sigmoid({RESPONSE.slope} × (ability +{' '}
+          {SIMULATOR_VERSION}: sigmoid({RESPONSE.slope} × (ability +{' '}
           {RESPONSE.abilityOffset} − level) − {RESPONSE.strainCoefficient} ×
           strain), clamped to {RESPONSE.minProbability}–
           {RESPONSE.maxProbability}. Changing these assumptions or the reward

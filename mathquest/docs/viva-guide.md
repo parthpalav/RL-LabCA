@@ -1,59 +1,58 @@
-# MathQuest game demonstration
+# MathQuest: presentation guide and verified model audit
 
-Updated 13 October 2026. Lane B, B1 progress checkpoint.
+Updated 13 October 2026. Includes the teammate's reward-v2/response-v2 models.
 
-## What works at this checkpoint
+## Present this now
 
-Start Adventure opens setup with an optional nickname and the three planned world choices. Answer the six starting questions using the mouse or keys 1–4. The question generator, grading, levels, and profile mapping come from `src/core/index.ts`.
+From `mathquest/`, run `npm run dev` and open the localhost URL printed by Vite.
 
-One answer locks all choices. Correctness and the core's worked solution appear only after locking. Enter or Next continues; Escape pauses. Leaving an unfinished journey requires a deliberate choice. There is no timer, elimination, or sound.
+1. Open **Research Lab → Model & scoring**. Show the exact loaded model: Q-learning seed 29, 100,000 episodes, 2,000,000 state-action updates, reward-v2 and response-v2. Play is frozen: epsilon is zero and no Q-value updates run.
+2. Open **Controller check**. Select **Comfortable**, **All 20 correct**, and enable **Live ability tracking**. With seed `20261013`, the actual saved controller chooses levels `3, 4, 4, 4, 5` and then holds level 5. Ready for a challenge reaches level 5 on question 3. These are prescribed-outcome checks, not held-out experiment results.
+3. Inspect question 2 or 5. Show the five-part state, state ID, valid/masked actions, all Q-values, training visits, selected action, reward components, and updated ability belief. Explain that the maximum valid Q-value selects difficulty. The separate Bayesian tracker changes the ability slot; it does not train the Q-table.
+4. Switch to **Two misses, then recovery** and show the changed trajectory. A correct answer does not force a raise; the state, remaining question count, and learned future values determine the action.
+5. Open **Training & comparisons**. Show the real exploring-training moving averages and the separate frozen checkpoint curves. The comparison table and exports come from the newly merged v2 study; do not quote the old v1 returns around 15 as current results.
+6. For human play, use **Start Adventure**, complete six calibration questions, then play the 20-question round. After an answer locks, the Next button shows the next level and **Why this level?** shows the recorded current and next decisions. The message always states the actual level change, even when the ability estimate changes.
+7. At results, show game points versus recorded RL return, raise/hold/ease counts, fallback frequency, and the reward decomposition. Open **How did the difficulty adapt?** for the round's original snapshots and counterfactual reconstruction. Export CSV or JSON for the professor.
 
-After calibration the game shows Starting out, Building up, Comfortable, or Ready for a challenge. This is a coarse starting suggestion. It is not a validated assessment of ability.
+## Why difficulty used to stay low
 
-The 20-question UI loop and results view are prepared, including points, an uncapped longest mistake streak, the difficulty timeline, review, and Play Again. They are gated behind the live core integration. **A real adaptive 20-question session is not yet available. B1 is not complete.**
+The earlier reward-v1 model was genuinely queried, but response-v1 assumed the strongest profile succeeded at level 5 only about one-third of the time. Holding level 3 had higher expected immediate reward than holding level 4 or 5. Twenty correct answers therefore did not force that frozen policy upward.
 
-Profile testing, training, and Research Lab links currently show clearly labeled pending screens. B2–B6 remain unfinished. The full three-world artwork, trail, and achievements belong to B3.
+The teammate subsequently changed the simulator, challenge reward, tracker settings, and visit-dependent training step size, and retrained all models. Those commits were merged without conflicts. The updated response-v2 assumes much higher success at advanced levels and reward-v2 gives a larger challenge bonus. The new all-correct trajectories above were verified against the saved table after the merge. The two experiment versions are not directly comparable.
 
-## Current dependency on Lane A
+## Explain the two scores
 
-The current A1 barrel provides questions, calibration, initial state, state codecs, and action masks. It does not yet provide the observed-answer transition, saved-artifact validator, or frozen controller. `public/models/q-learning-default.json` is also absent.
+Game points are `10 × difficulty` for a correct answer and zero for a wrong answer.
 
-`src/app/playRuntime.ts` checks the relative model URL. Missing files, Vite's HTML fallback, unreadable JSON, and network errors produce an honest empty state. A JSON file alone does not unlock Play: Lane A's validator and controller must be connected first. There is no stand-in difficulty policy or browser training in Play.
+The current RL reward comes directly from the core transition:
 
-`src/app/types.ts` describes a Lane B UI port, not an existing Lane A API. Once the actual public API lands, adapt these three operations in `playRuntime.ts`:
-
-- Initialize a session with the selected ability using the core's `initialState`.
-- Validate and load the frozen Q-learning artifact, then choose a difficulty from the current state and a supplied policy seed. The core must handle valid-action masks, seeded ties, and its documented unvisited-state fallback.
-- Apply the core's observed-correctness transition after each locked answer. The UI passes state, attempted level, and graded correctness. It does not pass the question, answer key, or response time to the controller.
-
-The UI makes a new seeded question after each core decision. Question randomness and policy tie randomness use distinct seed salts. Next waits for the player's intent. The twentieth answer ends the round, with no twenty-first question. The UI never updates Q-values or writes `public/models`.
-
-## Local launch and checks
-
-From `mathquest/`:
-
-```sh
-npm ci
-npm run dev
+```text
+correct answer reward = 1 + 1 × (difficulty − 1)
+wrong answer reward = −1
+reward = answer reward − 0.15 × next strain
+         − 0.4 when a wrong streak reaches at least 2
+         − 0.05 when difficulty changes
 ```
 
-Open the localhost URL printed by Vite. A static faculty URL comes in B6, after the actual playable modes and saved model are ready.
+Q-learning learns discounted future reward with gamma 0.95. The loaded model's base alpha is 0.2, selected by validation. Its actual visit-dependent step size is `min(0.2, 1 / (1 + visits)^0.7)`. Terminal question 20 uses reward alone, with no bootstrap. The Lab's training-step illustration is read-only and identifies this decay; Play does not execute the update.
+
+Round RL return is the undiscounted sum of observed rewards. Response time is context only, and never affects reward or policy selection. Strain is a failure-history proxy, not a psychological measurement.
+
+## Evidence and limits
+
+The app calls the core's `actFrozen`, `applyTransition`, grading, and ability tracker. It captures each selected action once, preserves the original state/Q-values/visits/reward at answer lock, and uses the cached next decision when Next is pressed. It never renders the question specification or answer key before locking.
+
+Original snapshots remain available if a model is later replaced. SHA-256 identifies the loaded file. Older journeys without snapshots are labeled as current-model reconstructions. Counterfactuals prescribe later correctness outcomes even if levels change; they are not predictions of how a human would answer different questions.
+
+Official experiment metrics hold ability fixed. Live tracking and scripted classroom checks are separate deployment demonstrations. Simulator success probabilities are synthetic assumptions. The project does not prove improved human learning or test scores. Raw unsmoothed training series were not bundled; the supplied training curves are labeled 100-episode moving averages.
+
+Verification commands:
 
 ```sh
 npm test
 node --import tsx src/app/b1.smoke.ts
+node --import tsx src/app/analytics.smoke.ts
 npm run build
-npm run preview
 ```
 
-At this checkpoint, the production build and all 15 existing core tests passed. The additional B1 smoke checks verify answer disclosure, locked feedback, results metrics with a synthetic fixture, local-storage boundaries and blocked storage, and missing/corrupt/unintegrated model states. These fixtures are test inputs, not experiment results.
-
-Chrome verification on macOS covered landing, setup, correct and incorrect feedback, all six calibration questions, the resulting profile, pause/resume, keyboard controls, duplicate-click and duplicate-key protection, and the missing-model screen. Phone layout was inspected at 390px; the desktop check uses 1280×800. Safari and a real adaptive session still need verification when the integration is ready.
-
-## Data and demonstration boundaries
-
-Settings and completed summaries are saved only if the player opts in. At most ten completed summaries are retained. Unfinished answers and raw question records stay in memory. Reset Local Data removes only the two MathQuest storage keys. If storage is unavailable, the game can still run in the current tab.
-
-Game points are `10 × difficulty` for a correct answer and zero otherwise. They are separate from the academic reward. Calibration does not train a model. The planned browser trainer will be a separate demonstration, and will not replace the submitted model.
-
-During the viva, describe only the functionality and results actually available. The controller chooses challenge; it does not solve questions or generate tutoring text. The simulator and calibration are simplified assumptions, and this project does not establish improved human learning.
+The analytics check covers 240 real-model decisions, exact core/replay parity, immutable Q-values and visits, reward totals, terminal handling, captured snapshots/exports, fallback labeling, model identity, and answer disclosure. Native browser automation was unreliable during this session, so complete Lab interaction and visual QA remain a verification limit. The implementation and production build are ready for your presentation.

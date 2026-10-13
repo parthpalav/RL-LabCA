@@ -63,7 +63,7 @@ Lane B imports the core. Lane B does not reimplement grading, the MDP, or Q-lear
 | B2 | B | Test a profile: play or watch a simulated player | Todo |
 | B3 | B | Three SVG worlds, guide, trail, badges, phone and laptop layout | Todo |
 | B4 | B | Train a profile screen. Must not overwrite `public/models` | Todo |
-| B5 | B | Research Lab: charts, policy inspector, exports | Todo |
+| B5 | B | Research Lab: charts, policy inspector, exports | In progress: model/scoring audit, recorded decisions, controller checks, policy inspector, measured charts and exports implemented; full browser QA pending |
 | B6 | B | Static URL on Cloudflare Pages, GitHub Pages, or Netlify | Ready: Pages workflow and `netlify.toml` added; enable Pages (Source: GitHub Actions) in repo settings |
 
 The game faculty open is Lane B. The tables that choose the difficulty are Lane A. Play mode stays on the saved Q-learning file. Train a profile is a browser demonstration only.

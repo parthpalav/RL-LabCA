@@ -5,6 +5,7 @@ import {
   initialState,
   mulberry32,
   nextDifficulty,
+  EPISODE_LENGTH,
   parseModel,
   priorBelief,
   qValue,
@@ -53,6 +54,8 @@ export function runtimeFromPolicy(
       return { state: initialState(ability), belief: priorBelief(ability) }
     },
     decide({ state, belief }, policySeed) {
+      if (state.answeredCount >= EPISODE_LENGTH)
+        throw new Error('No policy decision after episode termination')
       const decision = actFrozen(policy, state, mulberry32(policySeed))
       const stateId = encodeState(state)
       const valid = validActions(state.previousDifficulty)
